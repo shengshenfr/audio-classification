@@ -1,0 +1,4 @@
+install speech features
+$ pip install python_speech_features
+install scipy 
+$ python -m pip install --user numpy scipy matplotlib
