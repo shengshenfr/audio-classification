@@ -6,7 +6,7 @@ def main():
     mp3_file = "mp3/music.mp3"
     wav_dir = "wav"
     mfcc_dir = "feature"
-
+    sh.run("mkdir -p "+mfcc_dir)
 
 
     # modi_file = "feature/propriete.txt"
@@ -19,4 +19,4 @@ def main():
 
 
 if __name__ == '__main__':
-	main()    
+	main()

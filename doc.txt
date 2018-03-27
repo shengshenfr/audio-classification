@@ -1,4 +1,18 @@
+install python
+$ sudo apt-get install software-properties-common
+$ sudo add-apt-repository ppa:deadsnakes/ppa
+$ sudo apt-get update
+$ sudo apt-get install python3.6
+
 install speech features
 $ pip install python_speech_features
 install scipy 
 $ python -m pip install --user numpy scipy matplotlib
+
+install ffmpeg
+
+$ sudo add-apt-repository ppa:jonathonf/ffmpeg-3
+
+$ sudo apt-get update
+
+$ sudo apt-get install ffmpeg libav-tools x264 x265
