@@ -26,7 +26,7 @@ def run(mp3_file, wav_dir, mfcc_feature_dir):
     duration_in_s = rs.stdout()
     print(duration_in_s)
     print("total duration is " + duration_in_s + "s")
-    step_s = 600
+    step_s = 100
 
     for i in range(0, int(float(duration_in_s)), step_s):
         wav_file = wav_dir + "/" + str(i) + ".wav"
@@ -43,7 +43,7 @@ def run(mp3_file, wav_dir, mfcc_feature_dir):
 
 
 def plot(data,subplot_cnt):
-    mp3_file = "mp3/music.mp3"
+    mp3_file = "mp3/sound.mp3"
     cmd = """ffmpeg -i """ + mp3_file + """ 2>&1 | grep "Duration"| cut -d ' ' -f 4 | sed s/,// | awk '{ split($1, A, ":"); print 3600*A[1] + 60*A[2] + A[3] }'"""
     rs = sh.run(cmd, True)
     duration_in_s = rs.stdout()
