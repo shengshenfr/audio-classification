@@ -16,3 +16,9 @@ $ sudo add-apt-repository ppa:jonathonf/ffmpeg-3
 $ sudo apt-get update
 
 $ sudo apt-get install ffmpeg libav-tools x264 x265
+
+
+
+install  scikit
+$ pip install -U scikit-learn
+
