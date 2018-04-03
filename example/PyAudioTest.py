@@ -199,9 +199,11 @@ if __name__ == "__main__":
 
 
     	  (a,b) = stSpectralCentroidAndSpread(gamma_s_int,fe)
-
+          # period
     	  DESCRIP_vec_T = append(DESCRIP_vec_T,(fallingEdges[u] - risingEdges[u]) * 1. / fe)
+          #centroid
     	  DESCRIP_SpectralCentroid = append(DESCRIP_SpectralCentroid, a)
+          # spread
     	  DESCRIP_SpectralSpread = append(DESCRIP_SpectralSpread, b)
     	  #DESCRIP_formants = append(DESCRIP_formants, phormants(s_court, fe))
     	  #DESCRIP_SpectralRolloff = append(DESCRIP_SpectralRolloff,stSpectralRollOff(gamma_s_int,0.25,fe))
