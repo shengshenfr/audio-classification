@@ -10,6 +10,10 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import make_pipeline
 from sklearn import svm
 from sklearn import cross_validation
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.neighbors import KNeighborsClassifier
+
+
 
 def read_csv_file(csvFile,features,lable):
 
@@ -74,17 +78,23 @@ def normalize_features(features):
     #print features_normalization
     return features_normalization
 
-def evaluate_classfier(features,lable,nExp,classifier_name,params,parameter_mode,percent):
-    features_normalization = normalize_features(features)
+def train_svm(features_normalization,lable):
+    
     #print len(features_normalization)
     #print len(lable[0])
-    #features_train, features_test, lable_train, lable_test = train_test_split(features_normalization,lable[0])
-    features_train, features_test, lable_train, lable_test = train_test_split(features_normalization, lable[0], test_size = 0.2, random_state=0)
+    #features_train, features_test, lable_train, lable_test = train_test_split(features_normalization, lable[0], test_size = 0.2, random_state=0)
     classifier_pipeline = make_pipeline(preprocessing.StandardScaler(), svm.SVC(C=1))
     scores = cross_validation.cross_val_score(classifier_pipeline, features_normalization, lable[0], cv=5,scoring='accuracy')
     print scores.mean()
 
-
+def train_knn(features_normalization,lable):
+    knn = KNeighborsClassifier()
+    #print len(features_normalization)
+    #print len(lable[0])
+    #features_train, features_test, lable_train, lable_test = train_test_split(features_normalization, lable[0], test_size = 0.2, random_state=0)
+    classifier_pipeline = make_pipeline(preprocessing.StandardScaler(), knn)
+    scores = cross_validation.cross_val_score(classifier_pipeline, features_normalization, lable[0], cv=5,scoring='accuracy')
+    print scores.mean()
 
 
 
@@ -139,8 +149,10 @@ if __name__ == '__main__':
  	#class_names = ['type_0','type_1','type_2','type_3','type_4' ]
  	classifier_type = "svm"
  	percent_train_test = 0.70
-	evaluate_classfier(features,lable,1,classifier_type,classfierParams,0,percent_train_test)
-
+	#evaluate_classfier(features,lable,1,classifier_type,classfierParams,0,percent_train_test)
+ 	features_normalization = normalize_features(features)
+    	train_svm(features_normalization,lable)
+	train_knn(features_normalization,lable)
  	# features2 = []
  	# features2 = normalize_features(features)
  	# features = features2
