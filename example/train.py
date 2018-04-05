@@ -5,117 +5,101 @@ import os
 import sklearn.svm
 import csv
 import glob
-from sklearn import preprocessing 
+from sklearn import preprocessing
+from sklearn.model_selection import train_test_split 
+from sklearn.pipeline import make_pipeline
+from sklearn import svm
+from sklearn import cross_validation
 
-def read_csv_file(csvFile):
+def read_csv_file(csvFile,features,lable):
 
     with open(csvFile, 'rb') as csvfile:
+
     	reader = csv.reader(csvfile, delimiter=';', quotechar='|')
     	#T_period = [row[0] for row in reader]
-    	features = []
-    	result_class = []
+
     	totalNumOfFeatures = 4
+
+
         for j, row in enumerate(reader):
     		#T1 = row[0]
     		if j==0:
     			continue
     		#BW1 = row[1]
     		else:
-    			x = np.zeros((totalNumOfFeatures, 1))
-    			x[0] = row[0]
-    			x[1] = row[1]
-    			x[2] = row[2]
-    			x[3] = row[3]
-
+    			x = np.zeros((1,totalNumOfFeatures))
+    			#print x
     			y = np.zeros((1, 1))
+    			#print x
+
+    			x[0][0] = row[0]
+    			x[0][1] = row[1]
+    			x[0][2] = row[2]
+    			x[0][3] = row[3]
+
+    			
     			y[0] = row[4]
+
     			# BW.append(row[1])
     			# centroid.append(row[2])
     			# Fmax.append(row[3])
     			# lable.append(row[4])
     			features.append(x)
-    			result_class.append(y)
+    			lable.append(y)
 
-    	#print(T,BW,centroid,Fmax,lable)	
-    return features,result_class
-
-
-
-def randSplitFeatures(features, partTrain):
-
-    featuresTrain = []
-    featuresTest = []
-    for i, f in enumerate(features):
-        [numOfSamples, numOfDims] = f.shape
-        randperm = numpy.random.permutation(range(numOfSamples))
-        nTrainSamples = int(round(partTrain * numOfSamples))
-        featuresTrain.append(f[randperm[0:nTrainSamples]])
-        featuresTest.append(f[randperm[nTrainSamples::]])
-    return (featuresTrain, featuresTest)
+    	#print(T,BW,centroid,Fmax,lable)
+    	
+    	#print features	
+    return features,lable
 
 
 
 
-
-def trainSVM(features, Cparam):
-
-
-    [X, Y] = listOfFeatures2Matrix(features)
-    svm = sklearn.svm.SVC(C = Cparam, kernel = 'linear',  probability = True)        
-    svm.fit(X,Y)
-
-    return svm
 
 def normalize_features(features):
-	X = np.array([])
-	for count,f in enumerate(features):
-		if f.shape[0] > 0:
-			if count == 0:
-				X = f
+    X = np.array([])
 
-			else:
-				#print f
-				X = np.vstack((X,f))
-			count += 1
-
-	mean = np.mean(X, axis = 0) + 0.00000000000001;
-	std = np.std(X,axis = 0) + 0.00000000000001;
-
-	features_normalization = []
-	for f in features:
-		ft = f.copy()
-		for n_sample in range(f.shape[0]):
-			#print f
-			#print(f.shape[0])
-			print ft[n_sample, :]
-			ft[n_sample, :] = (ft[n_sample, :] - mean)/ std
-		features_normalization.append(ft)
-	return (features_normalization, mean, std)	
-
-def evaluate_classfier(features,class_names,nExp,classifier_name,params,parameter_mode,per_train = 0.70):
-	(features_normalization, mean, std) = normalize_features(features)
+    for count, f in enumerate(features):
+        #print X
+        if count == 0:
+            X = f
+        else:
+            X = np.vstack((X,f))
+        count += 1
+    #print X
 
 
+	#print features   
+    features_normalization = preprocessing.scale(X)
+    #print features_normalization
+    return features_normalization
 
-def feature_train(features,result_class):
-	num_features = len(features)
-	#print(" number features",num_features)
+def evaluate_classfier(features,lable,nExp,classifier_name,params,parameter_mode,percent):
+    features_normalization = normalize_features(features)
+    #print len(features_normalization)
+    #print len(lable[0])
+    #features_train, features_test, lable_train, lable_test = train_test_split(features_normalization,lable[0])
+    features_train, features_test, lable_train, lable_test = train_test_split(features_normalization, lable[0], test_size = 0.2, random_state=0)
+    classifier_pipeline = make_pipeline(preprocessing.StandardScaler(), svm.SVC(C=1))
+    scores = cross_validation.cross_val_score(classifier_pipeline, features_normalization, lable[0], cv=5,scoring='accuracy')
+    print scores.mean()
+
+
 
 
 
 if __name__ == '__main__':  
 	csvFile = "./TableFeats.csv" 
 
-
-
+	features = []
+	lable = []
 
 	###  step 1 : read csv file
+	features,lable= read_csv_file(csvFile,features,lable)
+	lable = np.concatenate(lable, 1)
 
-
-	features,class_name= read_csv_file(csvFile)
-	# features = numpy.concatenate(features, 1)
-	#print(features)
-	numOfFeatures = features[0].T.shape[1]
+	print(lable)
+	numOfFeatures = features[0].shape[1]
 	print(numOfFeatures)
 	# features 1 = T, features 1 = Bw, features 1 = Fcentroid, features 1 = Fmax
 	featureNames = ["features" + str(d + 1) for d in range(numOfFeatures)]
@@ -137,22 +121,29 @@ if __name__ == '__main__':
  	for f in features:
  		f_temp = []
  		for i in range(f.shape[0]):
- 			temp = f[i,:]
- 			if (not np.isnan(temp).any()) and (not np.isinf(temp).any()):
- 				f_temp.append(temp.tolist())
- 				
- 			else:
- 				print "feature error"
+ 			#print(f.shape[0])
+ 			#print("f is  ",f)
+			temp = f[i,:]
+			if (not np.isnan(temp).any()) and (not np.isinf(temp).any()):
+				f_temp.append(temp.tolist())
+				
+			else:
+				print "feature error"
 
  		features1.append(np.array(f_temp))
  	#print features2							
 
  	features = features1
+ 	#print features
 
+ 	#class_names = ['type_0','type_1','type_2','type_3','type_4' ]
+ 	classifier_type = "svm"
+ 	percent_train_test = 0.70
+	evaluate_classfier(features,lable,1,classifier_type,classfierParams,0,percent_train_test)
 
- 	features2 = []
- 	features2 = normalize_features(features)
- 	features = features2
+ 	# features2 = []
+ 	# features2 = normalize_features(features)
+ 	# features = features2
 
  	#print features2
 
