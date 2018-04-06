@@ -12,7 +12,9 @@ from sklearn import svm
 from sklearn import cross_validation
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.neighbors import KNeighborsClassifier
-
+from sklearn.externals import joblib
+from scipy.stats import sem
+import pandas as pd
 
 
 def read_csv_file(csvFile,features,lable):
@@ -78,25 +80,87 @@ def normalize_features(features):
     #print features_normalization
     return features_normalization
 
-def train_svm(features_normalization,lable):
+def train_svm(features_normalization,lable, svm_best_parameter):
+    features_train, features_test, lable_train, lable_test = train_test_split(features_normalization, lable[0], test_size = 0.2, random_state=0)
+    clf = sklearn.svm.SVC(C = svm_best_parameter,  probability = True)     
+    clf.fit(features_train,lable_train)
+
+    return clf
+
+def train_knn(features_normalization,lable, knn_best_parameter):
+    features_train, features_test, lable_train, lable_test = train_test_split(features_normalization, lable[0], test_size = 0.2, random_state=0)
+    knn = KNeighborsClassifier(n_neighbors = knn_best_parameter)
+    knn.fit(features_train,lable_train)
+
+    return knn
+
+def train_evaluate_cross_validation_svm(features_normalization,lable):
+    classifierParams = np.array([0.001, 0.01,  0.5, 1.0, 5.0, 10.0, 20.0])
+    #print len(features_normalization)
+    #print len(lable[0])
+    #features_train, features_test, lable_train, lable_test = train_test_split(features_normalization, lable[0], test_size = 0.2, random_state=0)
+    accuracy = []
+    for c,ci in enumerate(classifierParams):                # for each param value
+	print ci
+        classifier_pipeline = make_pipeline(preprocessing.StandardScaler(), svm.SVC(C = ci))
+        scores = cross_validation.cross_val_score(classifier_pipeline, features_normalization, lable[0], cv=5,scoring='accuracy')
+        print scores
+        print ("Mean score: {0:.3f} (+/-{1:.3f})").format(np.mean(scores), sem(scores))
+        accuracy.append(np.mean(scores))
     
-    #print len(features_normalization)
-    #print len(lable[0])
-    #features_train, features_test, lable_train, lable_test = train_test_split(features_normalization, lable[0], test_size = 0.2, random_state=0)
-    classifier_pipeline = make_pipeline(preprocessing.StandardScaler(), svm.SVC(C=1))
-    scores = cross_validation.cross_val_score(classifier_pipeline, features_normalization, lable[0], cv=5,scoring='accuracy')
-    print scores.mean()
-
-def train_knn(features_normalization,lable):
-    knn = KNeighborsClassifier()
-    #print len(features_normalization)
-    #print len(lable[0])
-    #features_train, features_test, lable_train, lable_test = train_test_split(features_normalization, lable[0], test_size = 0.2, random_state=0)
-    classifier_pipeline = make_pipeline(preprocessing.StandardScaler(), knn)
-    scores = cross_validation.cross_val_score(classifier_pipeline, features_normalization, lable[0], cv=5,scoring='accuracy')
-    print scores.mean()
+    best_accuracy_index = np.argmax(accuracy)
+    print accuracy
+    print best_accuracy_index 
+    return best_accuracy_index  
 
 
+
+      
+def train_evaluate_cross_validation_knn(features_normalization,lable):
+    k_range = range(1, 31)
+    k_scores = []
+    for k in k_range:
+        knn = KNeighborsClassifier(n_neighbors=k)
+        #print len(features_normalization)
+        #print len(lable[0])
+        #features_train, features_test, lable_train, lable_test = train_test_split(features_normalization, lable[0], test_size = 0.2, random_state=0)
+        classifier_pipeline = make_pipeline(preprocessing.StandardScaler(), knn)
+        scores = cross_validation.cross_val_score(classifier_pipeline, features_normalization, lable[0], cv=5,scoring='accuracy')
+        print scores
+        print ("Mean score: {0:.3f} (+/-{1:.3f})").format(np.mean(scores), sem(scores))
+        k_scores.append(scores.mean())
+    print k_scores
+    best_k_scores_index = np.argmax(k_scores)
+    
+    print best_k_scores_index
+    return best_k_scores_index
+
+
+def prediction(file,model_prediction):
+    df = pd.read_csv(file, delimiter=";")
+    featureMatrix = np.array(df.iloc[:, :4].values).astype(float)
+    classMatrix = np.array(df.iloc[:, 4:].values).astype(int)
+    
+    print featureMatrix
+    print classMatrix.T[0]
+    
+    predictions = np.array([])
+
+    # load the model from disk
+    clf = joblib.load(model_prediction)
+
+    for i in range(featureMatrix.shape[0]):
+        # X_test = scalingFactor.transform(featureMatrix[i, :])
+        X_test = featureMatrix[i,:]
+        predictions = append(predictions, clf.predict(X_test))
+
+    print(predictions)
+
+
+    print ("Classification Report:")
+    print (metrics.classification_report(y_test, predictions))
+    print ("Confusion Matrix:")
+    print(metrics.confusion_matrix(y_test, predictions))
 
 if __name__ == '__main__':  
 	csvFile = "./TableFeats.csv" 
@@ -124,7 +188,7 @@ if __name__ == '__main__':
 	'''
  	
 	classfierParams = np.array([0.001, 0.01, 0.5, 1.0, 5.0, 10.0, 20.0])
- 	print classfierParams
+ 	#print classfierParams
 
  	### get optimal class parameter
  	features1 = []
@@ -151,18 +215,35 @@ if __name__ == '__main__':
  	percent_train_test = 0.70
 	#evaluate_classfier(features,lable,1,classifier_type,classfierParams,0,percent_train_test)
  	features_normalization = normalize_features(features)
-    	train_svm(features_normalization,lable)
-	train_knn(features_normalization,lable)
+    	#train_svm(features_normalization,lable)
+	#train_knn(features_normalization,lable)
  	# features2 = []
  	# features2 = normalize_features(features)
  	# features = features2
 
  	#print features2
 
- 	#best_parameter = evaluate_classifier(features,)
+ 	knn_best_parameter = train_evaluate_cross_validation_knn(features_normalization,lable)
+    	svm_best_parameter = train_evaluate_cross_validation_svm(features_normalization,lable)
+
+
+	knn = train_knn(features_normalization,lable, knn_best_parameter)
+	svm = train_svm(features_normalization,lable, svm_best_parameter)
 	# features = preprocessing.minmax_scale(features,axis=0,feature_range=(0,1))
 	
 	# print(features)
 	# result_class = numpy.concatenate(result_class, 1)	
 	# #print result_class
 	# feature_train(features,result_class)
+
+
+	filename = 'finalized_model_knn.sav'
+        joblib.dump(knn, filename)
+
+	filename = 'finalized_model_svm.sav'
+        joblib.dump(svm, filename)
+     
+
+	file = "./featsMat.csv"
+	model_prediction = './finalized_model_svm.sav' 
+	prediction(file,model_prediction)

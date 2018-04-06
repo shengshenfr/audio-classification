@@ -123,6 +123,7 @@ if __name__ == "__main__":
 		# Loading file
     vec_s = loadmat('signalTestMultiCris.mat')
     a = vec_s.values()
+    #print a
     b = a[0].T
     c = b.tolist()
     d = list(flatten(c))
@@ -130,6 +131,7 @@ if __name__ == "__main__":
     print(len(vec_s))	
 		# To smooth the signal envelope
     N = 900
+    print vec_s
     #slots = range(0,tfin,pas*240)
     #print("slotss :" , slots)
 
