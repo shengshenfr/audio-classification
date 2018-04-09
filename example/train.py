@@ -5,7 +5,7 @@ import os
 import sklearn.svm
 import csv
 import glob
-from sklearn import preprocessing
+from sklearn import preprocessing,metrics
 from sklearn.model_selection import train_test_split 
 from sklearn.pipeline import make_pipeline
 from sklearn import svm
@@ -15,6 +15,8 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.externals import joblib
 from scipy.stats import sem
 import pandas as pd
+from collections import Iterable
+import hmmlearn.hmm
 
 
 def read_csv_file(csvFile,features,lable):
@@ -80,6 +82,75 @@ def normalize_features(features):
     #print features_normalization
     return features_normalization
 
+
+def get_hmm_parameter(features_normalization,lable):
+    uLable = np.unique(lable)
+    #print uLable
+    nComps = len(uLable)
+
+    nFeatures = features_normalization.shape[1]
+    #print nFeatures
+    if features_normalization.shape[0] < lable.shape[0]:
+        print "trainHMM warning: number of short-term feature vectors must be greater or equal to the labels length!"
+        labels = labels[0:features.shape[1]]
+
+
+    # compute prior probabilities:
+    startprob = np.zeros((nComps,))
+    for i, u in enumerate(uLable):
+        startprob[i] = np.count_nonzero(lable == u)
+    startprob = startprob / startprob.sum()                # normalize prior probabilities    
+    print ("start probobility is",startprob)
+
+    # compute transition matrix:
+    transmat = np.zeros((nComps, nComps))
+    #print lable.shape[1]
+    for i in range(lable.shape[1]-1):
+        transmat[int((lable.T)[i]), int((lable.T)[i + 1])] += 1
+    for i in range(nComps):                     # normalize rows of transition matrix:
+        transmat[i, :] /= transmat[i, :].sum()
+    print ("transfer matrix is",transmat)
+
+
+    means = np.zeros((nComps, nFeatures))
+    #print means
+    #print features_normalization 
+    for i in range(nComps):
+        #print uLable[i]
+        #print lable
+        #print np.nonzero(lable == uLable[i])[1]
+        temp_label = np.nonzero(lable == uLable[i])[1]
+        # print temp_label
+        # for j,temp in enumerate(temp_label):
+        #     print temp
+        #     print ("~~~~~~~~~~~~~~~",features_normalization[temp,:])
+        print(features_normalization[np.nonzero(lable == uLable[i])[1],:])
+        means[i, :] = np.matrix(features_normalization[np.nonzero(lable == uLable[i])[1],:].T.mean(axis=1))
+        print("#####################")
+
+    print ("means is",means)    
+
+
+    cov = np.zeros((nComps, nFeatures))
+    for i in range(nComps):
+        #cov[i,:,:] = numpy.cov(features[:,numpy.nonzero(labels==uLabels[i])[0]])  # use this lines if HMM using full gaussian distributions are to be used!
+        cov[i, :] = np.std(features_normalization[np.nonzero(lable == uLable[i])[1],:].T, axis=1)
+
+    print ("cov is",cov)
+
+
+    return startprob, transmat, means, cov
+
+def train_hmm(startprob, transmat, means, cov):
+    hmm = hmmlearn.hmm.GaussianHMM(startprob.shape[0], "diag")            # hmm training
+
+    hmm.startprob_ = startprob
+    hmm.transmat_ = transmat    
+    hmm.means_ = means
+    hmm.covars_ = cov
+    filename = 'finalized_model_hmm.sav'
+    joblib.dump(hmm, filename)
+
 def train_svm(features_normalization,lable, svm_best_parameter):
     features_train, features_test, lable_train, lable_test = train_test_split(features_normalization, lable[0], test_size = 0.2, random_state=0)
     clf = sklearn.svm.SVC(C = svm_best_parameter,  probability = True)     
@@ -141,22 +212,26 @@ def prediction(file,model_prediction):
     featureMatrix = np.array(df.iloc[:, :4].values).astype(float)
     classMatrix = np.array(df.iloc[:, 4:].values).astype(int)
     
-    print featureMatrix
-    print classMatrix.T[0]
+    print("feature matrix is",featureMatrix)
+    print("classMatrix is",classMatrix.T)
     
+    features_normalization = normalize_features(featureMatrix)
+    print ("features matrix normalisation is",features_normalization)
     predictions = np.array([])
 
     # load the model from disk
     clf = joblib.load(model_prediction)
 
-    for i in range(featureMatrix.shape[0]):
+    for i in range(features_normalization.shape[0]):
         # X_test = scalingFactor.transform(featureMatrix[i, :])
-        X_test = featureMatrix[i,:]
-        predictions = append(predictions, clf.predict(X_test))
+        X_test = [features_normalization[i,:]]
+        print("x test is", X_test)
+        predictions = np.append(predictions, clf.predict(X_test))
+        #print predictions
+    print("prediction is",predictions)
 
-    print(predictions)
-
-
+    y_test = (classMatrix.T)[0]
+    print("y_test is",classMatrix.T)
     print ("Classification Report:")
     print (metrics.classification_report(y_test, predictions))
     print ("Confusion Matrix:")
@@ -210,10 +285,7 @@ if __name__ == '__main__':
  	features = features1
  	#print features
 
- 	#class_names = ['type_0','type_1','type_2','type_3','type_4' ]
- 	classifier_type = "svm"
- 	percent_train_test = 0.70
-	#evaluate_classfier(features,lable,1,classifier_type,classfierParams,0,percent_train_test)
+
  	features_normalization = normalize_features(features)
     	#train_svm(features_normalization,lable)
 	#train_knn(features_normalization,lable)
@@ -223,27 +295,35 @@ if __name__ == '__main__':
 
  	#print features2
 
- 	knn_best_parameter = train_evaluate_cross_validation_knn(features_normalization,lable)
-    	svm_best_parameter = train_evaluate_cross_validation_svm(features_normalization,lable)
+ # 	knn_best_parameter = train_evaluate_cross_validation_knn(features_normalization,lable)
+ #    	svm_best_parameter = train_evaluate_cross_validation_svm(features_normalization,lable)
 
 
-	knn = train_knn(features_normalization,lable, knn_best_parameter)
-	svm = train_svm(features_normalization,lable, svm_best_parameter)
-	# features = preprocessing.minmax_scale(features,axis=0,feature_range=(0,1))
+	# knn = train_knn(features_normalization,lable, knn_best_parameter)
+	# svm = train_svm(features_normalization,lable, svm_best_parameter)
+	# # features = preprocessing.minmax_scale(features,axis=0,feature_range=(0,1))
 	
-	# print(features)
-	# result_class = numpy.concatenate(result_class, 1)	
-	# #print result_class
-	# feature_train(features,result_class)
+	# # print(features)
+	# # result_class = numpy.concatenate(result_class, 1)	
+	# # #print result_class
+	# # feature_train(features,result_class)
 
 
-	filename = 'finalized_model_knn.sav'
-        joblib.dump(knn, filename)
+	# filename = 'finalized_model_knn.sav'
+ #        joblib.dump(knn, filename)
 
-	filename = 'finalized_model_svm.sav'
-        joblib.dump(svm, filename)
+	# filename = 'finalized_model_svm.sav'
+ #        joblib.dump(svm, filename)
      
 
+	# file = "./featsMat.csv"
+	# model_prediction = './finalized_model_svm.sav' 
+	# prediction(file,model_prediction)
+
+        startprob, transmat, means, cov = get_hmm_parameter(features_normalization,lable)
+        train_hmm(startprob, transmat, means, cov)
+
+
 	file = "./featsMat.csv"
-	model_prediction = './finalized_model_svm.sav' 
+	model_prediction = './finalized_model_hmm.sav' 
 	prediction(file,model_prediction)
