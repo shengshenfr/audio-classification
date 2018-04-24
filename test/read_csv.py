@@ -31,12 +31,17 @@ def read(sample_file):
     with open(sample_file, 'rb') as csvfile:
 
     	reader = csv.reader(csvfile, delimiter=',', quotechar='|')
+        segProjet = []
+        segSite = []
+
         segStart = []
         #segEnd = []
         segLabel = []
         duration = []
-
+        segQuality = []
         for j, row in enumerate(reader):
+            segProjet.append(row[0])
+            segSite.append(row[1])
             date_with_tz = row[3]
             #print date_with_tz
 
@@ -46,16 +51,18 @@ def read(sample_file):
             segStart.append(start)
             #segEnd.append(row[4])
             end = datetime.strptime(row[4], "%Y-%m-%dT%H:%M:%S.%f")
-            segLabel.append((row[2]))
+            segLabel.append(row[2])
             dur = (end - start).total_seconds()
             duration.append(dur)
+
+            segQuality.append(row[5])
             #print dur
-    #print segStart,duration,segLabel
+    #print segProjet,segSite,segStart,duration,segLabel,segQuality
 
-    return segStart,duration,segLabel
+    return segProjet,segSite,segStart,duration,segLabel,segQuality
 
 
-def date_type(wav_dir,segStart,duration,segLabel,result_dir):
+def date_type(wav_dir,segProjet,segSite,segStart,duration,segLabel,segQuality,result_dir):
     for i, f in enumerate(glob.glob(wav_dir + os.sep +'*.wav')):               # for each WAV file
         wavFile = f
         #print os.path.splitext(wavFile)[0]
@@ -100,12 +107,12 @@ def date_type(wav_dir,segStart,duration,segLabel,result_dir):
         #
         # print  len(cut_time_start),len(cut_time_duration),len(cut_time_label)
 
-        cut(wavFile,waveFile_name, segStart,duration,segLabel, result_dir,start_date)
+        cut(wavFile,waveFile_name, segProjet,segSite,segStart,duration,segLabel,segQuality, result_dir,start_date)
 
 
 
 
-def cut(wavFile,waveFile_name, segStart,duration,segLabel, result_dir,start_date):
+def cut(wavFile,waveFile_name,segProjet,segSite,segStart,duration,segLabel,segQuality, result_dir,start_date):
     # date2 = datetime.strptime(date2, "%H:%M:%S")
     #print("date2 is ",date2)
     cmd = """ffmpeg -i """ + wavFile + """ 2>&1 | grep "Duration"| cut -d ' ' -f 4 | sed s/,// | awk '{ split($1, A, ":"); print 3600*A[1] + 60*A[2] + A[3] }'"""
@@ -114,8 +121,13 @@ def cut(wavFile,waveFile_name, segStart,duration,segLabel, result_dir,start_date
     duration_in_wavFile = rs.stdout()
     print("the duration of wavfile is ", duration_in_wavFile)
     print type(duration_in_wavFile)
+    good_projet = []
+    good_site = []
+    good_species = []
+    good_start = []
     good_cut_point = []
     good_duration = []
+    good_quality = []
     for i in range(0, len(segStart)):
         if i < len(segStart) - 1:
             cut_point = (segStart[i] - start_date).total_seconds()
@@ -123,12 +135,19 @@ def cut(wavFile,waveFile_name, segStart,duration,segLabel, result_dir,start_date
             #print type(cut_point)
 
             if cut_point >= 0 and float(cut_point) <= float(duration_in_wavFile):
+                good_projet.append(segProjet[i])
+                good_site.append(segSite[i])
+                good_species.append(segLabel[i])
+                temp_start = segStart[i].strftime("%Y-%m-%dT%H:%M:%S.%f")
+                good_start.append(temp_start)
                 good_cut_point.append(cut_point)
                 good_duration.append(duration[i])
+                good_quality.append(segQuality[i])
     print good_cut_point,str(good_duration)
+    print good_start
     for j in range(0,len(good_cut_point)):
-
-        cmd = "ffmpeg -ss " + str(good_cut_point[j]) + " -t " + str(good_duration[j])+ " -i " + wavFile + " " + result_dir + "/" + waveFile_name + str(j) + ".wav"
+        str_name = str(good_projet[j]) +"_"+ str(good_site[j]) +"_"+ str(good_start[j]) +".["+ str(good_species[j]) +"].["+ str(good_quality[j]) +"]"
+        cmd = "ffmpeg -ss " + str(good_cut_point[j]) + " -t " + str(good_duration[j])+ " -i " + wavFile + " " + result_dir + "/" + str_name + ".wav"
         sh.run(cmd)
 
     # resultFile = "result/0.wav"
@@ -153,13 +172,24 @@ def combine(result_dir,combine_dir):
 
 
 if __name__ == '__main__':
+
     sample_file = "sample/HAT_A_LF_dev.csv"
-    #segStart,duration,segLabel = read(sample_file)
+
     wav_dir = "wav"
     result_dir = "result"
     combine_dir = "combine_wavFile"
-    #date_type(wav_dir,segStart,duration,segLabel,result_dir)
-    combine(result_dir,combine_dir)
+    #clean files
+    cmd = "rm -rf " + result_dir  + "/*"
+    sh.run(cmd)
+    cmd = "rm -rf " + combine_dir  + "/*"
+    sh.run(cmd)
+
+    segProjet,segSite,segStart,duration,segLabel,segQuality = read(sample_file)
+    #date_type(wav_dir,segProjet,segSite,segStart,duration,segLabel,segQuality,result_dir)
+    # combine(result_dir,combine_dir)
+
+
+
     # date_with_tz = "2017-01-12T14:12:06.000-0500"
     # date_str, tz = date_with_tz[:-5], date_with_tz[-5:]
     # print date_str,tz
