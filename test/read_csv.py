@@ -62,7 +62,7 @@ def read(sample_file):
     return segProjet,segSite,segStart,duration,segLabel,segQuality
 
 
-def date_type(wav_dir,segProjet,segSite,segStart,duration,segLabel,segQuality,result_dir):
+def date_type(wav_dir,segProjet,segSite,segStart,duration,segLabel,segQuality,result_bm_dir,result_eg_dir):
     for i, f in enumerate(glob.glob(wav_dir + os.sep +'*.wav')):               # for each WAV file
         wavFile = f
         #print os.path.splitext(wavFile)[0]
@@ -107,12 +107,12 @@ def date_type(wav_dir,segProjet,segSite,segStart,duration,segLabel,segQuality,re
         #
         # print  len(cut_time_start),len(cut_time_duration),len(cut_time_label)
 
-        cut(wavFile,waveFile_name, segProjet,segSite,segStart,duration,segLabel,segQuality, result_dir,start_date)
+        cut(wavFile, segProjet,segSite,segStart,duration,segLabel,segQuality, result_bm_dir,result_eg_dir,start_date)
 
 
 
 
-def cut(wavFile,waveFile_name,segProjet,segSite,segStart,duration,segLabel,segQuality, result_dir,start_date):
+def cut(wavFile,segProjet,segSite,segStart,duration,segLabel,segQuality, result_bm_dir,result_eg_dir,start_date):
     # date2 = datetime.strptime(date2, "%H:%M:%S")
     #print("date2 is ",date2)
     cmd = """ffmpeg -i """ + wavFile + """ 2>&1 | grep "Duration"| cut -d ' ' -f 4 | sed s/,// | awk '{ split($1, A, ":"); print 3600*A[1] + 60*A[2] + A[3] }'"""
@@ -146,9 +146,13 @@ def cut(wavFile,waveFile_name,segProjet,segSite,segStart,duration,segLabel,segQu
     print good_cut_point,str(good_duration)
     print good_start
     for j in range(0,len(good_cut_point)):
-        str_name = str(good_projet[j]) +"_"+ str(good_site[j]) +"_"+ str(good_start[j]) +".["+ str(good_species[j]) +"].["+ str(good_quality[j]) +"]"
-        cmd = "ffmpeg -ss " + str(good_cut_point[j]) + " -t " + str(good_duration[j])+ " -i " + wavFile + " " + result_dir + "/" + str_name + ".wav"
-        sh.run(cmd)
+        str_name = str(good_projet[j]) +"_"+ str(good_site[j]) +"_"+ str(good_start[j]) +"."+ str(good_species[j]) +"."+ str(good_quality[j])
+        if str(good_species[j]) == "Bm":
+            cmd = "ffmpeg -ss " + str(good_cut_point[j]) + " -t " + str(good_duration[j])+ " -i " + wavFile + " " + result_bm_dir + "/" + str_name + ".wav"
+            sh.run(cmd)
+        if str(good_species[j]) == "Eg":
+            cmd = "ffmpeg -ss " + str(good_cut_point[j]) + " -t " + str(good_duration[j])+ " -i " + wavFile + " " + result_eg_dir + "/" + str_name + ".wav"
+            sh.run(cmd)
 
     # resultFile = "result/0.wav"
     # cmd = """ffmpeg -i """ + resultFile + """ 2>&1 | grep "Duration"| cut -d ' ' -f 4 | sed s/,// | awk '{ split($1, A, ":"); print 3600*A[1] + 60*A[2] + A[3] }'"""
@@ -176,16 +180,20 @@ if __name__ == '__main__':
     sample_file = "sample/HAT_A_LF_dev.csv"
 
     wav_dir = "wav"
-    result_dir = "result"
+    #result_dir = "result"
+    result_bm_dir = "result_bm"
+    result_eg_dir = "result_eg"
     combine_dir = "combine_wavFile"
     #clean files
-    cmd = "rm -rf " + result_dir  + "/*"
+    cmd = "rm -rf " + result_bm_dir  + "/*"
+    sh.run(cmd)
+    cmd = "rm -rf " + result_eg_dir  + "/*"
     sh.run(cmd)
     cmd = "rm -rf " + combine_dir  + "/*"
     sh.run(cmd)
 
     segProjet,segSite,segStart,duration,segLabel,segQuality = read(sample_file)
-    #date_type(wav_dir,segProjet,segSite,segStart,duration,segLabel,segQuality,result_dir)
+    #date_type(wav_dir,segProjet,segSite,segStart,duration,segLabel,segQuality,result_bm_dir,result_eg_dir)
     # combine(result_dir,combine_dir)
 
 
