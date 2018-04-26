@@ -63,6 +63,8 @@ def read(sample_file):
 
 
 def date_type(wav_dir,segProjet,segSite,segStart,duration,segLabel,segQuality,result_bm_dir,result_eg_dir):
+    print max(duration)
+    print min(duration)
     for i, f in enumerate(glob.glob(wav_dir + os.sep +'*.wav')):               # for each WAV file
         wavFile = f
         #print os.path.splitext(wavFile)[0]
@@ -121,6 +123,7 @@ def cut(wavFile,segProjet,segSite,segStart,duration,segLabel,segQuality, result_
     duration_in_wavFile = rs.stdout()
     print("the duration of wavfile is ", duration_in_wavFile)
     print type(duration_in_wavFile)
+    print type(duration)
     good_projet = []
     good_site = []
     good_species = []
@@ -193,7 +196,7 @@ if __name__ == '__main__':
     sh.run(cmd)
 
     segProjet,segSite,segStart,duration,segLabel,segQuality = read(sample_file)
-    #date_type(wav_dir,segProjet,segSite,segStart,duration,segLabel,segQuality,result_bm_dir,result_eg_dir)
+    date_type(wav_dir,segProjet,segSite,segStart,duration,segLabel,segQuality,result_bm_dir,result_eg_dir)
     # combine(result_dir,combine_dir)
 
 
