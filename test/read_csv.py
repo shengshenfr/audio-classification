@@ -141,8 +141,11 @@ def cut(wavFile,segProjet,segSite,segStart,duration,segLabel,segQuality, result_
                 good_projet.append(segProjet[i])
                 good_site.append(segSite[i])
                 good_species.append(segLabel[i])
+
                 temp_start = segStart[i].strftime("%Y-%m-%dT%H:%M:%S.%f")
+                temp_start = temp_start[:-5]
                 good_start.append(temp_start)
+
                 good_cut_point.append(cut_point)
                 good_duration.append(duration[i])
                 good_quality.append(segQuality[i])
@@ -183,17 +186,17 @@ if __name__ == '__main__':
     sample_file = "sample/HAT_A_LF_dev.csv"
 
     wav_dir = "wav"
-    #result_dir = "result"
-    result_bm_dir = "result_bm"
-    result_eg_dir = "result_eg"
+
+    result_bm_dir = "read/read_bm"
+    result_eg_dir = "read/read_eg"
     combine_dir = "combine_wavFile"
     #clean files
     cmd = "rm -rf " + result_bm_dir  + "/*"
     sh.run(cmd)
     cmd = "rm -rf " + result_eg_dir  + "/*"
     sh.run(cmd)
-    cmd = "rm -rf " + combine_dir  + "/*"
-    sh.run(cmd)
+    # cmd = "rm -rf " + combine_dir  + "/*"
+    # sh.run(cmd)
 
     segProjet,segSite,segStart,duration,segLabel,segQuality = read(sample_file)
     date_type(wav_dir,segProjet,segSite,segStart,duration,segLabel,segQuality,result_bm_dir,result_eg_dir)
