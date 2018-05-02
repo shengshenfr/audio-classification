@@ -10,13 +10,46 @@ import util
 import librosa
 
 
+def format_array(arr):
+    return "[%s]" % ", ".join(["%.14f" % x for x in arr])
+
+def extration_wavelet_packet(wavFile):
+    wavelet = pywt.Wavelet('db1')
+    print(format_array(wavelet.dec_lo), format_array(wavelet.dec_hi))
+    wavelet = pywt.Wavelet('db2')
+    print(format_array(wavelet.dec_lo), format_array(wavelet.dec_hi))
+    wavelet = pywt.Wavelet('db3')
+    print(format_array(wavelet.dec_lo), format_array(wavelet.dec_hi))
+
+    '''
+    sig, fs = librosa.load(wavFile)
+    print("fs is ",fs)
+    print("signal length is ", len(sig))
+    N_signal = len(sig)
+    n_level = 3
+    N_sub = N_signal/(2**n_level)
+    print sig
+    # x = sig.reshape((len(sig),1))
+    # print x
+    wp = pywt.WaveletPacket(data=sig, wavelet='db3', mode='symmetric')
+
+    print wp.data
+    print wp.maxlevel
+    # print len(wp.data)
+    '''
 def extration_wavelet(wavFile):
+
+
     in_data, fs = librosa.load(wavFile)
     #print("fs is ",fs)
-    #print("data is ", in_data)
+    print("data is ", in_data)
 
-    coeffs = pywt.cwt(in_data,np.arange(1,129),"db1")
-    print len(coeffs[0])
+    coef, freqs = pywt.cwt(in_data,np.arange(1,129),'gaus1')
+    #print coef
+    print len(coef)
+    # plt.imshow(coef, extent=[-1, 1, 1, 128], cmap='PRGn', aspect='auto',
+    #       vmax=abs(coef).max(), vmin=-abs(coef).max())
+    # plt.show()
 
 def extration_librosa(wavFile):
 
@@ -53,8 +86,8 @@ def parse_audio_files(result_redimension_dir,sub_redimensions,file_ext):
             print("extract file: %s" % (f))
             try:
                 #mfccs,chroma,mel,contrast = extration_librosa(f)
-                extration_wavelet(f)
-                print ("mfcc is",np.array(mfccs))
+                extration_wavelet_packet(f)
+                #print ("mfcc is",np.array(mfccs))
             except Exception as e:
                 print("[Error] extract feature error. %s" % (e))
                 continue

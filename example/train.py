@@ -6,7 +6,7 @@ import sklearn.svm
 import csv
 import glob
 from sklearn import preprocessing,metrics
-from sklearn.model_selection import train_test_split 
+from sklearn.model_selection import train_test_split
 from sklearn.pipeline import make_pipeline
 from sklearn import svm
 from sklearn import cross_validation
@@ -17,7 +17,7 @@ from scipy.stats import sem
 import pandas as pd
 from collections import Iterable
 import hmmlearn.hmm
-
+import matplotlib.pyplot as plt
 
 def read_csv_file(csvFile,features,lable):
 
@@ -45,7 +45,7 @@ def read_csv_file(csvFile,features,lable):
     			x[0][2] = row[2]
     			x[0][3] = row[3]
 
-    			
+
     			y[0] = row[4]
 
     			# BW.append(row[1])
@@ -56,8 +56,8 @@ def read_csv_file(csvFile,features,lable):
     			lable.append(y)
 
     	#print(T,BW,centroid,Fmax,lable)
-    	
-    	#print features	
+
+    	#print features
     return features,lable
 
 
@@ -77,7 +77,7 @@ def normalize_features(features):
     #print X
 
 
-	#print features   
+	#print features
     features_normalization = preprocessing.scale(X)
     #print features_normalization
     return features_normalization
@@ -99,7 +99,7 @@ def get_hmm_parameter(features_normalization,lable):
     startprob = np.zeros((nComps,))
     for i, u in enumerate(uLable):
         startprob[i] = np.count_nonzero(lable == u)
-    startprob = startprob / startprob.sum()                # normalize prior probabilities    
+    startprob = startprob / startprob.sum()                # normalize prior probabilities
     print ("start probobility is",startprob)
 
     # compute transition matrix:
@@ -114,7 +114,7 @@ def get_hmm_parameter(features_normalization,lable):
 
     means = np.zeros((nComps, nFeatures))
     #print means
-    #print features_normalization 
+    #print features_normalization
     for i in range(nComps):
         #print uLable[i]
         #print lable
@@ -124,11 +124,11 @@ def get_hmm_parameter(features_normalization,lable):
         # for j,temp in enumerate(temp_label):
         #     print temp
         #     print ("~~~~~~~~~~~~~~~",features_normalization[temp,:])
-        print(features_normalization[np.nonzero(lable == uLable[i])[1],:])
+        #print(features_normalization[np.nonzero(lable == uLable[i])[1],:])
         means[i, :] = np.matrix(features_normalization[np.nonzero(lable == uLable[i])[1],:].T.mean(axis=1))
-        print("#####################")
+        #print("#####################")
 
-    print ("means is",means)    
+    print ("means is",means)
 
 
     cov = np.zeros((nComps, nFeatures))
@@ -145,7 +145,7 @@ def train_hmm(startprob, transmat, means, cov):
     hmm = hmmlearn.hmm.GaussianHMM(startprob.shape[0], "diag")            # hmm training
 
     hmm.startprob_ = startprob
-    hmm.transmat_ = transmat    
+    hmm.transmat_ = transmat
     hmm.means_ = means
     hmm.covars_ = cov
     filename = 'finalized_model_hmm.sav'
@@ -153,7 +153,7 @@ def train_hmm(startprob, transmat, means, cov):
 
 def train_svm(features_normalization,lable, svm_best_parameter):
     features_train, features_test, lable_train, lable_test = train_test_split(features_normalization, lable[0], test_size = 0.2, random_state=0)
-    clf = sklearn.svm.SVC(C = svm_best_parameter,  probability = True)     
+    clf = sklearn.svm.SVC(C = svm_best_parameter,  probability = True)
     clf.fit(features_train,lable_train)
 
     return clf
@@ -178,15 +178,25 @@ def train_evaluate_cross_validation_svm(features_normalization,lable):
         print scores
         print ("Mean score: {0:.3f} (+/-{1:.3f})").format(np.mean(scores), sem(scores))
         accuracy.append(np.mean(scores))
-    
+
     best_accuracy_index = np.argmax(accuracy)
-    print accuracy
-    print best_accuracy_index 
-    return best_accuracy_index  
+    print ("all accuracies are",accuracy)
+    print ("best parameter of C is ",best_accuracy_index)
+
+    plt.plot(classifierParams, accuracy)
+    plt.xlabel('Value of C for SVM')
+    plt.ylabel('Cross-Validated Accuracy')
+    ax = plt.axes()
+    ann = ax.annotate(u"C = 4",xy=(4,0.96), xytext=(4,0.9),size=10, va="center",ha="center", bbox=dict(boxstyle='sawtooth',fc="w"), arrowprops=dict(arrowstyle="-|>", connectionstyle="angle,rad=0.4",fc='r') )
 
 
 
-      
+    plt.show()
+    return best_accuracy_index
+
+
+
+
 def train_evaluate_cross_validation_knn(features_normalization,lable):
     k_range = range(1, 31)
     k_scores = []
@@ -200,10 +210,19 @@ def train_evaluate_cross_validation_knn(features_normalization,lable):
         print scores
         print ("Mean score: {0:.3f} (+/-{1:.3f})").format(np.mean(scores), sem(scores))
         k_scores.append(scores.mean())
-    print k_scores
+    print ("all k scores are",k_scores)
     best_k_scores_index = np.argmax(k_scores)
-    
-    print best_k_scores_index
+
+    plt.plot(k_range, k_scores)
+    plt.xlabel('Value of K for KNN')
+    plt.ylabel('Cross-Validated Accuracy')
+    ax = plt.axes()
+    ann = ax.annotate(u"C = 4",xy=(4,0.945), xytext=(4,0.9),size=10, va="center",ha="center", bbox=dict(boxstyle='sawtooth',fc="w"), arrowprops=dict(arrowstyle="-|>", connectionstyle="angle,rad=0.4",fc='r') )
+
+
+
+    plt.show()
+    print ("best K is ",best_k_scores_index)
     return best_k_scores_index
 
 
@@ -211,10 +230,10 @@ def prediction(file,model_prediction):
     df = pd.read_csv(file, delimiter=";")
     featureMatrix = np.array(df.iloc[:, :4].values).astype(float)
     classMatrix = np.array(df.iloc[:, 4:].values).astype(int)
-    
+
     print("feature matrix is",featureMatrix)
     print("classMatrix is",classMatrix.T)
-    
+
     features_normalization = normalize_features(featureMatrix)
     print ("features matrix normalisation is",features_normalization)
     predictions = np.array([])
@@ -237,8 +256,8 @@ def prediction(file,model_prediction):
     print ("Confusion Matrix:")
     print(metrics.confusion_matrix(y_test, predictions))
 
-if __name__ == '__main__':  
-	csvFile = "./TableFeats.csv" 
+if __name__ == '__main__':
+	csvFile = "./TableFeats.csv"
 
 	features = []
 	lable = []
@@ -247,9 +266,9 @@ if __name__ == '__main__':
 	features,lable= read_csv_file(csvFile,features,lable)
 	lable = np.concatenate(lable, 1)
 
-	print(lable)
+	#print(lable)
 	numOfFeatures = features[0].shape[1]
-	print(numOfFeatures)
+	#print(numOfFeatures)
 	# features 1 = T, features 1 = Bw, features 1 = Fcentroid, features 1 = Fmax
 	featureNames = ["features" + str(d + 1) for d in range(numOfFeatures)]
 	#print featureNames
@@ -261,7 +280,7 @@ if __name__ == '__main__':
 	'''
 	choose parameter
 	'''
- 	
+
 	classfierParams = np.array([0.001, 0.01, 0.5, 1.0, 5.0, 10.0, 20.0])
  	#print classfierParams
 
@@ -275,12 +294,12 @@ if __name__ == '__main__':
 			temp = f[i,:]
 			if (not np.isnan(temp).any()) and (not np.isinf(temp).any()):
 				f_temp.append(temp.tolist())
-				
+
 			else:
 				print "feature error"
 
  		features1.append(np.array(f_temp))
- 	#print features2							
+ 	#print features2
 
  	features = features1
  	#print features
@@ -295,16 +314,16 @@ if __name__ == '__main__':
 
  	#print features2
 
- # 	knn_best_parameter = train_evaluate_cross_validation_knn(features_normalization,lable)
- #    	svm_best_parameter = train_evaluate_cross_validation_svm(features_normalization,lable)
+ 	#knn_best_parameter = train_evaluate_cross_validation_knn(features_normalization,lable)
+    	svm_best_parameter = train_evaluate_cross_validation_svm(features_normalization,lable)
 
 
 	# knn = train_knn(features_normalization,lable, knn_best_parameter)
 	# svm = train_svm(features_normalization,lable, svm_best_parameter)
 	# # features = preprocessing.minmax_scale(features,axis=0,feature_range=(0,1))
-	
+
 	# # print(features)
-	# # result_class = numpy.concatenate(result_class, 1)	
+	# # result_class = numpy.concatenate(result_class, 1)
 	# # #print result_class
 	# # feature_train(features,result_class)
 
@@ -314,16 +333,16 @@ if __name__ == '__main__':
 
 	# filename = 'finalized_model_svm.sav'
  #        joblib.dump(svm, filename)
-     
+
 
 	# file = "./featsMat.csv"
-	# model_prediction = './finalized_model_svm.sav' 
+	# model_prediction = './finalized_model_knn.sav'
 	# prediction(file,model_prediction)
 
-        startprob, transmat, means, cov = get_hmm_parameter(features_normalization,lable)
-        train_hmm(startprob, transmat, means, cov)
+        # startprob, transmat, means, cov = get_hmm_parameter(features_normalization,lable)
+        # train_hmm(startprob, transmat, means, cov)
 
 
-	file = "./featsMat.csv"
-	model_prediction = './finalized_model_hmm.sav' 
-	prediction(file,model_prediction)
+	#file = "./featsMat.csv"
+	#model_prediction = './finalized_model_hmm.sav'
+	#prediction(file,model_prediction)
