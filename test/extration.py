@@ -8,35 +8,71 @@ import matplotlib.pyplot as plt
 import pywt
 import util
 import librosa
-
+import math
 
 def format_array(arr):
     return "[%s]" % ", ".join(["%.14f" % x for x in arr])
 
 def extration_wavelet_packet(wavFile):
-    wavelet = pywt.Wavelet('db1')
-    print(format_array(wavelet.dec_lo), format_array(wavelet.dec_hi))
-    wavelet = pywt.Wavelet('db2')
-    print(format_array(wavelet.dec_lo), format_array(wavelet.dec_hi))
-    wavelet = pywt.Wavelet('db3')
-    print(format_array(wavelet.dec_lo), format_array(wavelet.dec_hi))
+    # wavelet = pywt.Wavelet('db1')
+    # print(format_array(wavelet.dec_lo), format_array(wavelet.dec_hi))
+    # wavelet = pywt.Wavelet('db2')
+    # print(format_array(wavelet.dec_lo), format_array(wavelet.dec_hi))
+    # wavelet = pywt.Wavelet('db3')
+    # print(format_array(wavelet.dec_lo), format_array(wavelet.dec_hi))
 
-    '''
+
     sig, fs = librosa.load(wavFile)
     print("fs is ",fs)
     print("signal length is ", len(sig))
     N_signal = len(sig)
-    n_level = 3
-    N_sub = N_signal/(2**n_level)
+    n_level = 6
+    #N_sub = N_signal/(2**n_level)
     print sig
+    #print ("N sub is ",N_sub)
     # x = sig.reshape((len(sig),1))
     # print x
-    wp = pywt.WaveletPacket(data=sig, wavelet='db3', mode='symmetric')
 
-    print wp.data
+    wp = pywt.WaveletPacket(data=sig, wavelet='db3', mode='symmetric')
+    #
+    # print wp.data
     print wp.maxlevel
-    # print len(wp.data)
-    '''
+    #print len(wp.data)
+    Node = []
+    N_limit = 16
+    limit = 0
+    for node in wp.get_level(6, 'natural'):
+            Node.append(node.path)
+
+    print("sub sample is ",len(Node))
+
+    TC = get_teager_energy(wp,Node,n_level,N_limit)
+    print ("TC is ",TC)
+
+
+
+def  get_teager_energy(wp,Node,n,N_limit):
+    k_len = 12
+    TC = []
+    for k in range(k_len):
+        sum = 0
+        for l in range(2**n):
+            el = get_e(l,N_limit,wp,Node)
+            sum += math.log(el,2) * math.cos(k*(l-0.5)*math.pi/(2**n))
+        TC.append(sum)
+    return TC
+
+def get_e(l,N_limit,wp,Node):
+    name = Node[l]
+    x = wp[name].data
+    sum = 0
+    for t in range(N_limit):
+
+        sum += x[t+1]*x[t+1]-x[t]*x[t+2]
+        #print sum
+    el = float(sum/N_limit)
+    return el
+
 def extration_wavelet(wavFile):
 
 
