@@ -114,31 +114,37 @@ def extration_librosa(wavFile):
 
 
 
-def parse_audio_files(result_redimension_dir,sub_redimensions,file_ext):
-    features = np.array([])
-    for i, sub_dir in enumerate(sub_redimensions):
+def parse_audio_files_librosa(result_redimension_dir,sub_redimensions,file_ext):
+    features, labels = np.empty((0,160)), np.empty(0)
+    for label, sub_dir in enumerate(sub_redimensions):
+        print("label: %s" % (label))
         #print("sub_dir: %s" % (sub_dir))
         for f in glob.glob(os.path.join(result_redimension_dir, sub_dir, file_ext)):
             print("extract file: %s" % (f))
+            waveFile_name = (os.path.splitext(f)[0]).split(os.sep)[2]
+            quality = util.splitext(waveFile_name)[2]
             try:
-                #mfccs,chroma,mel,contrast = extration_librosa(f)
-                extration_wavelet_packet(f)
+                mfccs,chroma,mel,contrast = extration_librosa(f)
+                # extration_wavelet_packet(f)
+                print len(mfccs),len(chroma),len(mel),len(contrast)
                 #print ("mfcc is",np.array(mfccs))
             except Exception as e:
                 print("[Error] extract feature error. %s" % (e))
                 continue
 
-            # ext_features = np.concatenate((np.array(mfccs),np.array(chroma)),axis=0)
-            # print len(ext_features)
+            ext_features = np.hstack([mfccs,chroma,mel,contrast])
+            print len(ext_features)
             #print ext_features
-            #features = np.vstack([features,ext_features])
-            #labels = np.append(labels, f.split('/')[-1].split('-')[1])
-
-    #return np.array(features)
+            features = np.vstack([features,ext_features])
+            # labels = np.append(labels, quality)
+            labels = np.append(labels, label)
+        print features.shape
+        print labels
+    return np.array(features), np.array(labels, dtype = np.int)
 
 if __name__ == "__main__":
 
     result_redimension_dir = "result_redimension"
     sub_redimensions = ['bm_redimension', 'eg_redimension']
     file_ext='*.wav'
-    parse_audio_files(result_redimension_dir,sub_redimensions,file_ext)
+    parse_audio_files_librosa(result_redimension_dir,sub_redimensions,file_ext)
