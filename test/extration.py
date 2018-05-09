@@ -28,7 +28,7 @@ def extration_wavelet_packet(wavFile):
     N_signal = len(sig)
     n_level = 6
     #N_sub = N_signal/(2**n_level)
-    print sig
+    #print sig
     #print ("N sub is ",N_sub)
     # x = sig.reshape((len(sig),1))
     # print x
@@ -36,7 +36,7 @@ def extration_wavelet_packet(wavFile):
     wp = pywt.WaveletPacket(data=sig, wavelet='db3', mode='symmetric')
     #
     # print wp.data
-    print wp.maxlevel
+    #print wp.maxlevel
     #print len(wp.data)
     Node = []
     N_limit = 16
@@ -82,7 +82,7 @@ def extration_wavelet(wavFile):
 
     coef, freqs = pywt.cwt(in_data,np.arange(1,129),'gaus1')
     #print coef
-    print len(coef)
+    #print len(coef)
     # plt.imshow(coef, extent=[-1, 1, 1, 128], cmap='PRGn', aspect='auto',
     #       vmax=abs(coef).max(), vmin=-abs(coef).max())
     # plt.show()
@@ -126,20 +126,20 @@ def parse_audio_files_librosa(result_redimension_dir,sub_redimensions,file_ext):
             try:
                 mfccs,chroma,mel,contrast = extration_librosa(f)
                 # extration_wavelet_packet(f)
-                print len(mfccs),len(chroma),len(mel),len(contrast)
+                #print len(mfccs),len(chroma),len(mel),len(contrast)
                 #print ("mfcc is",np.array(mfccs))
             except Exception as e:
                 print("[Error] extract feature error. %s" % (e))
                 continue
 
             ext_features = np.hstack([mfccs,chroma,mel,contrast])
-            print len(ext_features)
+            #print len(ext_features)
             #print ext_features
             features = np.vstack([features,ext_features])
             # labels = np.append(labels, quality)
             labels = np.append(labels, label)
-        print features.shape
-        print labels
+        #print features.shape
+        #print labels
     return np.array(features), np.array(labels, dtype = np.int)
 
 if __name__ == "__main__":
