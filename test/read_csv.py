@@ -67,9 +67,9 @@ def date_type(wav_dir,segProjet,segSite,segStart,duration,segLabel,segQuality,re
     print min(duration)
     for i, f in enumerate(glob.glob(wav_dir + os.sep +'*.wav')):               # for each WAV file
         wavFile = f
-        #print os.path.splitext(wavFile)[0]
-        waveFile_name = (os.path.splitext(wavFile)[0]).split(os.sep)[1]
-        #print waveFile_name
+        print os.path.splitext(wavFile)[0]
+        waveFile_name = (os.path.splitext(wavFile)[0]).split(os.sep)[2]
+        print waveFile_name
         date1 = waveFile_name.split("_")[3]
         date2 = (waveFile_name.split("_")[4]).split(".")[0]
         #print date1,date2
@@ -185,7 +185,7 @@ if __name__ == '__main__':
 
     sample_file = "sample/HAT_A_LF_dev.csv"
 
-    wav_dir = "wav"
+    wav_dir = 'wav/train'
 
     result_bm_dir = "read/read_bm"
     result_eg_dir = "read/read_eg"

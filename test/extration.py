@@ -48,7 +48,7 @@ def extration_wavelet_packet(wavFile):
 
     TC = get_teager_energy(wp,Node,n_level,N_limit)
     print ("TC is ",TC)
-
+    return TC
 
 
 def  get_teager_energy(wp,Node,n,N_limit):
@@ -99,7 +99,7 @@ def extration_librosa(wavFile):
 
     # mfcc
     mfccs = np.mean(librosa.feature.mfcc(y=X, sr=sample_rate, n_mfcc=13).T,axis=0)
-
+    '''
     # chroma
     chroma = np.mean(librosa.feature.chroma_stft(S=stft, sr=sample_rate).T,axis=0)
 
@@ -110,41 +110,78 @@ def extration_librosa(wavFile):
     contrast = np.mean(librosa.feature.spectral_contrast(S=stft, sr=sample_rate).T,axis=0)
 
     return mfccs,chroma,mel,contrast
+    '''
+    return mfccs
 
 
-
-
-def parse_audio_files_librosa(result_redimension_dir,sub_redimensions,file_ext):
-    features, labels = np.empty((0,160)), np.empty(0)
-    for label, sub_dir in enumerate(sub_redimensions):
+def parse_audio_files_waveletPackets(read_dir,sub_read,file_ext):
+    features, labels = np.empty((0,12)), np.empty(0)
+    for label, sub_dir in enumerate(sub_read):
         print("label: %s" % (label))
         #print("sub_dir: %s" % (sub_dir))
-        for f in glob.glob(os.path.join(result_redimension_dir, sub_dir, file_ext)):
+        for f in glob.glob(os.path.join(read_dir, sub_dir, file_ext)):
             print("extract file: %s" % (f))
             waveFile_name = (os.path.splitext(f)[0]).split(os.sep)[2]
             quality = util.splitext(waveFile_name)[2]
             try:
-                mfccs,chroma,mel,contrast = extration_librosa(f)
-                # extration_wavelet_packet(f)
-                #print len(mfccs),len(chroma),len(mel),len(contrast)
-                #print ("mfcc is",np.array(mfccs))
+                TC = extration_wavelet_packet(f)
+
             except Exception as e:
                 print("[Error] extract feature error. %s" % (e))
                 continue
 
-            ext_features = np.hstack([mfccs,chroma,mel,contrast])
+            ext_features = np.hstack([TC])
             #print len(ext_features)
             #print ext_features
             features = np.vstack([features,ext_features])
             # labels = np.append(labels, quality)
             labels = np.append(labels, label)
-        #print features.shape
+        print (features.shape)
+        #print features
+        #print labels
+    return np.array(features), np.array(labels, dtype = np.int)
+
+
+def parse_audio_files_librosa(read_dir,sub_read,file_ext):
+    features, labels = np.empty((0,13)), np.empty(0)
+    for label, sub_dir in enumerate(sub_read):
+        print("label: %s" % (label))
+        #print("sub_dir: %s" % (sub_dir))
+        for f in glob.glob(os.path.join(read_dir, sub_dir, file_ext)):
+            print("extract file: %s" % (f))
+            waveFile_name = (os.path.splitext(f)[0]).split(os.sep)[2]
+            quality = util.splitext(waveFile_name)[2]
+            try:
+                mfccs = extration_librosa(f)
+                # print len(mfccs),len(chroma),len(mel),len(contrast)
+                print (len(mfccs))
+                #print ("mfcc is",np.array(mfccs))
+            except Exception as e:
+                print("[Error] extract feature error. %s" % (e))
+                continue
+
+            # ext_features = np.hstack([mfccs,chroma,mel,contrast])
+            ext_features = np.hstack([mfccs])
+            #print len(ext_features)
+            #print ext_features
+            features = np.vstack([features,ext_features])
+            # labels = np.append(labels, quality)
+            labels = np.append(labels, label)
+        print (features.shape)
+        print (features)
         #print labels
     return np.array(features), np.array(labels, dtype = np.int)
 
 if __name__ == "__main__":
-
+    '''
     result_redimension_dir = "result_redimension"
     sub_redimensions = ['bm_redimension', 'eg_redimension']
     file_ext='*.wav'
     parse_audio_files_librosa(result_redimension_dir,sub_redimensions,file_ext)
+    parse_audio_files_waveletPackets(result_redimension_dir,sub_redimensions,file_ext)
+    '''
+    read_dir = "read"
+    sub_read = ['read_bm', 'read_eg']
+    file_ext='*.wav'
+    # parse_audio_files_librosa(read_dir,sub_read,file_ext)
+    parse_audio_files_waveletPackets(read_dir,sub_read,file_ext)

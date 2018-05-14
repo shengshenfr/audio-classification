@@ -17,17 +17,19 @@ from torch import nn
 from torch.autograd import Variable
 from torch.nn import init
 import torch.utils.data as Data
+import torch.nn.functional as F
 
-input_size = 160
+input_size = 13
 hidden_size = 60
 num_layers = 2
 num_classes = 2
-batch_size = 1
+batch_size = 5
 num_epochs = 2
 learning_rate = 0.01
 
 
 class RNN(nn.Module):
+
     def __init__(self, input_size, hidden_size, num_layers, num_classes):
         super(RNN, self).__init__()
         self.hidden_size = hidden_size
@@ -47,6 +49,20 @@ class RNN(nn.Module):
         # Decode hidden state of last time step
         out = self.fc(out[:, -1, :])
         return out
+
+class Net(torch.nn.Module):
+
+    def __init__(self, feature_size, hidden_size, output_size):
+        super(Net, self).__init__()
+        self.hidden = torch.nn.Linear(feature_size,hidden_size)
+        self.out = torch.nn.Linear(hidden_size,output_size)
+
+    def forward(self, x):
+        x = F.relu(self.hidden(x))
+        x = self.out(x)
+
+        return x
+
 
 
 
@@ -101,9 +117,11 @@ def train(features,labels):
     rnn = RNN(input_size, hidden_size, num_layers, num_classes)
     print(rnn)
 
+    # net = Net(feature_size = 13,hidden_size = 10, output_size = 2)
+    # print(net)
 
-
-    optimizer = torch.optim.Adam(rnn.parameters(), lr=learning_rate)   # optimize all parameters
+    # optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)   # optimize all parameters
+    optimizer = torch.optim.Adam(rnn.parameters(), lr=learning_rate)
     loss_func = nn.CrossEntropyLoss()   # the target label is not one-hotted
     x, y = torch.from_numpy(train_x).float(), torch.from_numpy(train_y).long()
     train_dataset = Data.TensorDataset(x, y)
@@ -114,27 +132,41 @@ def train(features,labels):
     # print x_temp.shape
     # x, y = Variable(torch.Tensor(x_temp)), Variable(torch.LongTensor(train_y))
 
+    test_x1, test_y1 = torch.from_numpy(test_x).float(), torch.from_numpy(test_y).long()
+    test_x = Variable(test_x1, requires_grad=False).type(torch.FloatTensor)
+    test_y = test_y1.numpy().squeeze() # covert to numpy array
+
     for epoch in range(num_epochs):
         for step, (x, y) in enumerate(train_loader):   # gives batch data
-            print (x.shape)
-            b_x = Variable(torch.Tensor(x[ : , np.newaxis , :]))   
-            print (b_x.shape)
+            #print (x.shape)
+            # b_x = Variable(x.view(-1,13))
+            b_x = Variable(x.view(-1,1,13), requires_grad=False)
+            #print (b_x.shape)
             #print b_x
-            b_y = Variable(torch.LongTensor(y))   # batch y
-            print (b_y)
-            output = rnn(b_x)               # rnn output
+            b_y = Variable(y.view(-1), requires_grad=False)   # batch y
+            #print (b_y)
+            # output = net(b_x)               # rnn output
+            output = rnn(b_x)
             loss = loss_func(output, b_y)   # cross entropy loss
             optimizer.zero_grad()           # clear gradients for this training step
             loss.backward()                 # backpropagation, compute gradients
             optimizer.step()                # apply gradients
 
+            if step % 10 == 0:
+                # test_output = net(test_x)
+                test_output = rnn(test_x.view(-1,1,13))
+                pred_y = torch.max(test_output, 1)[1].data.numpy().squeeze()
+                accuracy = sum(pred_y == test_y) / float(test_y.size)
+                print('Epoch: ', epoch, '| train loss: %.4f' % loss.data[0], '| test accuracy: %.2f' % accuracy)
 
+    model_path = 'model/rnn.pkl'
+    torch.save(rnn,model_path)
 
 
 if __name__ == "__main__":
 
-    result_redimension_dir = "result_redimension"
-    sub_redimensions = ['bm_redimension', 'eg_redimension']
+    read_dir = "read"
+    sub_read = ['read_bm', 'read_eg']
     file_ext='*.wav'
-    features,labels = parse_audio_files_librosa(result_redimension_dir,sub_redimensions,file_ext)
+    features,labels = parse_audio_files_librosa(read_dir,sub_read,file_ext)
     train(features,labels)
