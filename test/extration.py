@@ -183,5 +183,5 @@ if __name__ == "__main__":
     read_dir = "read"
     sub_read = ['read_bm', 'read_eg']
     file_ext='*.wav'
-    # parse_audio_files_librosa(read_dir,sub_read,file_ext)
-    parse_audio_files_waveletPackets(read_dir,sub_read,file_ext)
+    parse_audio_files_librosa(read_dir,sub_read,file_ext)
+    # parse_audio_files_waveletPackets(read_dir,sub_read,file_ext)

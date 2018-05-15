@@ -20,11 +20,11 @@ import torch.utils.data as Data
 import torch.nn.functional as F
 
 input_size = 13
-hidden_size = 60
+hidden_size = 80
 num_layers = 2
 num_classes = 2
 batch_size = 5
-num_epochs = 2
+num_epochs = 10
 learning_rate = 0.01
 
 
@@ -101,6 +101,7 @@ def encode_label(labels):
     return labels_encode
 
 
+
 def train(features,labels):
     # x = torch.linspace(1, 10, 10)       # x data (torch tensor)
     # y = torch.linspace(10, 1, 10)       # y data (torch tensor)
@@ -157,7 +158,7 @@ def train(features,labels):
                 test_output = rnn(test_x.view(-1,1,13))
                 pred_y = torch.max(test_output, 1)[1].data.numpy().squeeze()
                 accuracy = sum(pred_y == test_y) / float(test_y.size)
-                print('Epoch: ', epoch, '| train loss: %.4f' % loss.data[0], '| test accuracy: %.2f' % accuracy)
+                print('Epoch: ', epoch, '| train loss: %.4f' % loss.data[0], '| test accuracy: %.4f' % accuracy)
 
     model_path = 'model/rnn.pkl'
     torch.save(rnn,model_path)
@@ -169,4 +170,5 @@ if __name__ == "__main__":
     sub_read = ['read_bm', 'read_eg']
     file_ext='*.wav'
     features,labels = parse_audio_files_librosa(read_dir,sub_read,file_ext)
+
     train(features,labels)

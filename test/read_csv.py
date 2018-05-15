@@ -183,13 +183,13 @@ def combine(result_dir,combine_dir):
 
 if __name__ == '__main__':
 
-    sample_file = "sample/HAT_A_LF_dev.csv"
+    sample_file = "sample_csv/HAT/HAT_A_LF_dev.csv"
 
     wav_dir = 'wav/train'
 
     result_bm_dir = "read/read_bm"
     result_eg_dir = "read/read_eg"
-    combine_dir = "combine_wavFile"
+    # combine_dir = "combine_wavFile"
     #clean files
     cmd = "rm -rf " + result_bm_dir  + "/*"
     sh.run(cmd)
