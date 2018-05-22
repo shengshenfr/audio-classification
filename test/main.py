@@ -3,11 +3,10 @@ import mp3_to_wav
 import sh
 
 
-
 def main():
-    mp3_file = "mp3/sound.mp3"
+    mp3_dir = "mp3"
     # wav_dir = "wav"
-    mfcc_dir = "feature"
+    feature_dir = "feature"
     sh.run("mkdir -p "+mfcc_dir)
 
 

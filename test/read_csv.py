@@ -168,7 +168,6 @@ def cut(wavFile,segProjet,segSite,segStart,duration,segLabel,segQuality, result_
 
 
 
-
 def combine(result_dir,combine_dir):
     part = ""
     size = 0

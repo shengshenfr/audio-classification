@@ -198,7 +198,7 @@ def train_evaluate_cross_validation_svm(features_normalization,lable):
 
 
 def train_evaluate_cross_validation_knn(features_normalization,lable):
-    k_range = range(1, 31)
+    k_range = range(1,  31)
     k_scores = []
     for k in k_range:
         knn = KNeighborsClassifier(n_neighbors=k)

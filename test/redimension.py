@@ -24,11 +24,9 @@ def padding_audio(data,fs,T):
     # Stack only if there is something to append
     if shape[0] > 0:
         if len(shape) > 1:
-            return np.vstack((np.zeros(shape),
-                              data))
+            return np.vstack((data,np.zeros(shape)))
         else:
-            return np.hstack((np.zeros(shape),
-                              data))
+            return np.hstack((data,np.zeros(shape)))
     else:
         return data
 

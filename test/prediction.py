@@ -114,7 +114,9 @@ def predict():
 
 
 if __name__ == '__main__':
-
+    #clean files
+    # cmd = "rm -rf feature/*"
+    # sh.run(cmd)
     # prepration()
     # get_features()
     predict()
