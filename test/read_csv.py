@@ -62,7 +62,7 @@ def read(sample_file):
     return segProjet,segSite,segStart,duration,segLabel,segQuality
 
 
-def date_type(wav_dir,segProjet,segSite,segStart,duration,segLabel,segQuality,result_bm_dir,result_eg_dir):
+def date_type(wav_dir,segProjet,segSite,segStart,duration,segLabel,segQuality,read_dir):
     print max(duration)
     print min(duration)
     for i, f in enumerate(glob.glob(wav_dir + os.sep +'*.wav')):               # for each WAV file
@@ -108,15 +108,16 @@ def date_type(wav_dir,segProjet,segSite,segStart,duration,segLabel,segQuality,re
         #         cut_time_label.append(segLabel[k])
         #
         # print  len(cut_time_start),len(cut_time_duration),len(cut_time_label)
-
-        cut(wavFile, segProjet,segSite,segStart,duration,segLabel,segQuality, result_bm_dir,result_eg_dir,start_date)
-
-
+        print read_dir
+        # cut(wavFile, segProjet,segSite,segStart,duration,segLabel,segQuality, read_dir,start_date)
 
 
-def cut(wavFile,segProjet,segSite,segStart,duration,segLabel,segQuality, result_bm_dir,result_eg_dir,start_date):
+
+
+def cut(wavFile,segProjet,segSite,segStart,duration,segLabel,segQuality, read_dir,start_date):
     # date2 = datetime.strptime(date2, "%H:%M:%S")
     #print("date2 is ",date2)
+
     cmd = """ffmpeg -i """ + wavFile + """ 2>&1 | grep "Duration"| cut -d ' ' -f 4 | sed s/,// | awk '{ split($1, A, ":"); print 3600*A[1] + 60*A[2] + A[3] }'"""
     rs = sh.run(cmd, True)
 
@@ -151,14 +152,17 @@ def cut(wavFile,segProjet,segSite,segStart,duration,segLabel,segQuality, result_
                 good_quality.append(segQuality[i])
     print good_cut_point,str(good_duration)
     print good_start
+    encode_good_species = np.unique(good_species)
+    print ("encode species is: " encode_good_species )
     for j in range(0,len(good_cut_point)):
         str_name = str(good_projet[j]) +"_"+ str(good_site[j]) +"_"+ str(good_start[j]) +"."+ str(good_species[j]) +"."+ str(good_quality[j])
-        if str(good_species[j]) == "Bm":
-            cmd = "ffmpeg -ss " + str(good_cut_point[j]) + " -t " + str(good_duration[j])+ " -i " + wavFile + " " + result_bm_dir + "/" + str_name + ".wav"
-            sh.run(cmd)
-        if str(good_species[j]) == "Eg":
-            cmd = "ffmpeg -ss " + str(good_cut_point[j]) + " -t " + str(good_duration[j])+ " -i " + wavFile + " " + result_eg_dir + "/" + str_name + ".wav"
-            sh.run(cmd)
+        for specie in encode_good_species:
+            if str(good_species[j]) == specie:
+                cmd = "ffmpeg -ss " + str(good_cut_point[j]) + " -t " + str(good_duration[j])+ " -i " + wavFile + " " + read_dir + "/" + specie + "/" + str_name + ".wav"
+                sh.run(cmd)
+            # if str(good_species[j]) == "Eg":
+            #     cmd = "ffmpeg -ss " + str(good_cut_point[j]) + " -t " + str(good_duration[j])+ " -i " + wavFile + " " + result_eg_dir + "/" + str_name + ".wav"
+            #     sh.run(cmd)
 
     # resultFile = "result/0.wav"
     # cmd = """ffmpeg -i """ + resultFile + """ 2>&1 | grep "Duration"| cut -d ' ' -f 4 | sed s/,// | awk '{ split($1, A, ":"); print 3600*A[1] + 60*A[2] + A[3] }'"""
@@ -168,15 +172,15 @@ def cut(wavFile,segProjet,segSite,segStart,duration,segLabel,segQuality, result_
 
 
 
-def combine(result_dir,combine_dir):
-    part = ""
-    size = 0
-    for i, f in enumerate(glob.glob(result_dir + os.sep +'*.wav')):
-        part += " -i " + f
-        size +=1
-    #print part
-    cmd = "ffmpeg " + part + " -filter_complex '[0:0][1:0][2:0][3:0]concat=n=" + str(size) + ":v=0:a=1[out]' -map '[out]' " + combine_dir + "/combine.wav"
-    sh.run(cmd)
+# def combine(result_dir,combine_dir):
+#     part = ""
+#     size = 0
+#     for i, f in enumerate(glob.glob(result_dir + os.sep +'*.wav')):
+#         part += " -i " + f
+#         size +=1
+#     #print part
+#     cmd = "ffmpeg " + part + " -filter_complex '[0:0][1:0][2:0][3:0]concat=n=" + str(size) + ":v=0:a=1[out]' -map '[out]' " + combine_dir + "/combine.wav"
+#     sh.run(cmd)
 
 
 
@@ -186,8 +190,9 @@ if __name__ == '__main__':
 
     wav_dir = 'wav/train'
 
-    result_bm_dir = "read/read_bm"
-    result_eg_dir = "read/read_eg"
+    # result_bm_dir = "read/bm"
+    # result_eg_dir = "read/eg"
+    read_dir = "read"
     # combine_dir = "combine_wavFile"
     #clean files
     cmd = "rm -rf " + result_bm_dir  + "/*"
@@ -198,7 +203,7 @@ if __name__ == '__main__':
     # sh.run(cmd)
 
     segProjet,segSite,segStart,duration,segLabel,segQuality = read(sample_file)
-    date_type(wav_dir,segProjet,segSite,segStart,duration,segLabel,segQuality,result_bm_dir,result_eg_dir)
+    date_type(wav_dir,segProjet,segSite,segStart,duration,segLabel,segQuality,read_dir)
     # combine(result_dir,combine_dir)
 
 
