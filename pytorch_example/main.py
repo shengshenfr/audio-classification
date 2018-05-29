@@ -23,15 +23,12 @@ def main():
     #sh.run("rm -rf "+str_name)
 
     # mp3_to_wav.run(mp3_file, wav_dir)
-
-    train_sub_dir = wav_dir + "/" + "train"
-    prediction_sub_dir = wav_dir + "/" + "prediction"
-    noLabelWav_sub_dir = wav_dir + "/" + "noLabelWav"
-    HAT_sub_dir = sample_csv_dir + "/" + "HAT"
-    WAT_sub_dir = sample_csv_dir + "/" + "WAT"
-    sub_dir = train_sub_dir +" "+ prediction_sub_dir +" "+ noLabelWav_sub_dir +" "+ HAT_sub_dir +" "+ WAT_sub_dir
+    wav_train__dir = wav_dir + "/" + "train"
+    wav_prediction_dir = wav_dir + "/" + "prediction"
+    csv_train_dir = sample_csv_dir + "/" + "train"
+    csv_prediction_dir = sample_csv_dir + "/" + "prediction"
+    sub_dir = wav_train__dir +" "+ wav_prediction_dir +" "+ csv_train_dir +" "+ csv_prediction_dir
     sh.run("mkdir -p "+ sub_dir)
-
 
     labels = []
     for i, f in enumerate(glob.glob(sample_csv_dir + os.sep +'*')):

@@ -158,24 +158,7 @@ if __name__ == "__main__":
 
     clean(padding_dir)
 
-    read_audio(read_dir,sub_dirs,T_total,padding_dir,labels)
-    # result_bm_padding_dir = "result_padding/bm_padding"
-    # result_eg_padding_dir = "result_padding/eg_padding"
-    #
-    # result_padding_dir = "result_padding"
-
-    # bm_padding_dir = "bm_padding"
-    # eg_padding_dir = "eg_padding"
-
-
-    # bm_redimension_dir = "bm_redimension"
-    # eg_redimension_dir = "eg_redimension"
-    #define total duration is 8s
-
-    # cmd = "rm -rf " + result_bm_padding_dir  + "/*.wav"
-    # sh.run(cmd)
-    # cmd = "rm -rf " + result_eg_padding_dir  + "/*.wav"
-    # sh.run(cmd)
+    # read_audio(read_dir,sub_dirs,T_total,padding_dir,labels)
 
     clean(redimension_dir)
-    cut_padding_audio(padding_dir,sub_dirs,T_total,redimension_dir,labels)
+    # cut_padding_audio(padding_dir,sub_dirs,T_total,redimension_dir,labels)

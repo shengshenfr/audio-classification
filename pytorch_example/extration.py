@@ -9,6 +9,8 @@ import pywt
 import util
 import librosa
 import math
+from sklearn import preprocessing
+
 
 def format_array(arr):
     return "[%s]" % ", ".join(["%.14f" % x for x in arr])
@@ -172,6 +174,27 @@ def parse_audio_files_librosa(read_dir,sub_read,file_ext):
         #print labels
     return np.array(features), np.array(labels, dtype = np.int)
 
+
+def normaliser_features(features):
+
+    features_normalisation = preprocessing.scale(features)
+
+    return features_normalisation
+
+
+
+def encode_label(labels):
+    n_labels = len(labels)
+    n_unique_labels = len(np.unique(labels))
+    labels_encode = np.zeros((n_labels,1))
+    #print labels_encode
+    for i in range(n_labels):
+        labels_encode[i]= labels[i]
+
+    return labels_encode
+
+
+
 if __name__ == "__main__":
     '''
     redimension_dir = "redimension"
@@ -183,5 +206,15 @@ if __name__ == "__main__":
     read_dir = "read"
     sub_read = ['Ba', 'Bm','Eg']
     file_ext='*.wav'
-    parse_audio_files_librosa(read_dir,sub_read,file_ext)
+    features,labels = parse_audio_files_librosa(read_dir,sub_read,file_ext)
+    features_normalisation = normaliser_features(features)
+    # print ("features noramallisation are ",features_normalisation)
+    labels_encode = encode_label(labels)
+    print ("label encode is ",labels_encode)
+    #print type(labels_encode)
+    cmd = "rm -rf feature/*"
+    sh.run(cmd)
+    np.savetxt("feature/prediction_features.txt",features_normalisation)
+    np.savetxt("feature/prediction_label.txt",labels_encode)
+
     # parse_audio_files_waveletPackets(read_dir,sub_read,file_ext)

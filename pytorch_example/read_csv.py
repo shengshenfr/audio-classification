@@ -26,38 +26,37 @@ class FixedOffset(tzinfo):
     def __repr__(self):
         return 'FixedOffset(%d)' % (self.utcoffset().total_seconds() / 60)
 
-def read(sample_file):
+def read(csv_train_dir):
+    segProjet = []
+    segSite = []
+    segStart = []
+    #segEnd = []
+    segLabel = []
+    duration = []
+    segQuality = []
+    for j,sample_file in enumerate(glob.glob(csv_train_dir + os.sep +'*.csv')):
+        print sample_file
+        with open(sample_file, 'rb') as csvfile:
+            reader = csv.reader(csvfile, delimiter=',', quotechar='|')
+            for j, row in enumerate(reader):
+                segProjet.append(row[0])
+                segSite.append(row[1])
+                date_with_tz = row[3]
+                #print date_with_tz
 
-    with open(sample_file, 'rb') as csvfile:
+                start = datetime.strptime(date_with_tz, "%Y-%m-%dT%H:%M:%S.%f")
 
-    	reader = csv.reader(csvfile, delimiter=',', quotechar='|')
-        segProjet = []
-        segSite = []
+                #start = datetime.datetime.strptime(row[3], "%Y-%m-%dT%H:%M:%S")
+                segStart.append(start)
+                #segEnd.append(row[4])
+                end = datetime.strptime(row[4], "%Y-%m-%dT%H:%M:%S.%f")
+                segLabel.append(row[2])
+                dur = (end - start).total_seconds()
+                duration.append(dur)
 
-        segStart = []
-        #segEnd = []
-        segLabel = []
-        duration = []
-        segQuality = []
-        for j, row in enumerate(reader):
-            segProjet.append(row[0])
-            segSite.append(row[1])
-            date_with_tz = row[3]
-            #print date_with_tz
-
-            start = datetime.strptime(date_with_tz, "%Y-%m-%dT%H:%M:%S.%f")
-
-            #start = datetime.datetime.strptime(row[3], "%Y-%m-%dT%H:%M:%S")
-            segStart.append(start)
-            #segEnd.append(row[4])
-            end = datetime.strptime(row[4], "%Y-%m-%dT%H:%M:%S.%f")
-            segLabel.append(row[2])
-            dur = (end - start).total_seconds()
-            duration.append(dur)
-
-            segQuality.append(row[5])
-            #print dur
-    #print segProjet,segSite,segStart,duration,segLabel,segQuality
+                segQuality.append(row[5])
+                #print dur
+        #print segProjet,segSite,segStart,duration,segLabel,segQuality
 
     return segProjet,segSite,segStart,duration,segLabel,segQuality
 
@@ -122,8 +121,13 @@ def cut(wavFile,segProjet,segSite,segStart,duration,segLabel,segQuality, read_di
 
     duration_in_wavFile = rs.stdout()
     print("the duration of wavfile is ", duration_in_wavFile)
-    print type(duration_in_wavFile)
-    print type(duration)
+    # print type(duration_in_wavFile)
+    # print type(duration)
+
+    w = os.path.splitext(wavFile)[0]
+    projet_wav = w.split("_")[0]
+    site_wav = w.split("_")[1]
+
     good_projet = []
     good_site = []
     good_species = []
@@ -155,7 +159,7 @@ def cut(wavFile,segProjet,segSite,segStart,duration,segLabel,segQuality, read_di
     for j in range(0,len(good_cut_point)):
         str_name = str(good_projet[j]) +"_"+ str(good_site[j]) +"_"+ str(good_start[j]) +"."+ str(good_species[j]) +"."+ str(good_quality[j])
         for s in encode_good_speices:
-            if str(good_species[j]) == s:
+            if str(good_species[j]) == s and str(good_projet[j]==projet_wav) and str(good_site[j])==site_wav:
                 cmd = "ffmpeg -ss " + str(good_cut_point[j]) + " -t " + str(good_duration[j])+ " -i " + wavFile + " " + read_dir + "/" + s + "/" + str_name + ".wav"
                 sh.run(cmd)
         # if str(good_species[j]) == "Eg":
@@ -189,7 +193,7 @@ def clean(file_dir):
 
 if __name__ == '__main__':
 
-    sample_file = "sample_csv/HAT/HAT_A_LF_dev.csv"
+    csv_train_dir = "sample_csv/train"
 
     wav_dir = 'wav/train'
     read_dir = "read"
@@ -203,7 +207,7 @@ if __name__ == '__main__':
 
     # cmd = "rm -rf " + combine_dir  + "/*"
     # sh.run(cmd)
-    segProjet,segSite,segStart,duration,segLabel,segQuality = read(sample_file)
+    segProjet,segSite,segStart,duration,segLabel,segQuality = read(csv_train_dir)
     date_type(wav_dir,segProjet,segSite,segStart,duration,segLabel,segQuality,read_dir)
 
     # combine(result_dir,combine_dir)
