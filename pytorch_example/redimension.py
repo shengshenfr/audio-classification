@@ -116,8 +116,13 @@ def cut_padding_audio(padding_dir,sub_dirs,T_total,redimension_dir,labels):
                 for j in range(0, len(cut_point)):
                     print str(cut_point[j])
                     for l in labels:
+
                         if quality == l:
-                            path_name = redimension_dir +"/"+ l +"/"
+                            number = np.random.randint(0,9)
+                            if number>2:
+                                path_name = redimension_dir+"/"+"train" +"/"+ l +"/"
+                            else:
+                                path_name = redimension_dir+"/"+"test" +"/"+ l +"/"
                         # if quality == "Eg":
                         #     path_name = result_redimension_dir +"/"+ eg_redimension_dir +"/"
 
@@ -126,7 +131,11 @@ def cut_padding_audio(padding_dir,sub_dirs,T_total,redimension_dir,labels):
             else:
                 for l in labels:
                     if quality == l:
-                        path_name = redimension_dir +"/"+ l +"/"
+                        number = np.random.randint(0,9)
+                        if number>2:
+                            path_name = redimension_dir+"/"+"train" +"/"+ l +"/"
+                        else:
+                            path_name = redimension_dir+"/"+"test" +"/"+ l +"/"
                     # if quality == "Eg":
                     #     path_name = result_redimension_dir +"/"+ eg_redimension_dir +"/"
 
@@ -147,6 +156,8 @@ if __name__ == "__main__":
     read_dir = "read"
     padding_dir = "padding"
     redimension_dir = "redimension"
+    redimension__train_dir = "redimension/train"
+    redimension__test_dir = "redimension/test"
     labels = []
     T_total = 4
     sub_dirs = []
@@ -157,8 +168,8 @@ if __name__ == "__main__":
     print labels
 
     clean(padding_dir)
-
-    # read_audio(read_dir,sub_dirs,T_total,padding_dir,labels)
-
-    clean(redimension_dir)
-    # cut_padding_audio(padding_dir,sub_dirs,T_total,redimension_dir,labels)
+    clean(redimension__train_dir)
+    clean(redimension__test_dir)
+    read_audio(read_dir,sub_dirs,T_total,padding_dir,labels)
+    cut_padding_audio(padding_dir,sub_dirs,T_total,redimension_dir,labels)
+    # clean(padding_dir)

@@ -44,16 +44,28 @@ def make_dataset(dir, class_to_idx):
                     spects.append(item)
     return spects
 
-def spect_loader(path):
+def spect_loader(path,max_len=101):
     X, sample_rate = librosa.load(path, sr=None)
     # mfcc
-    mfccs = np.mean(librosa.feature.mfcc(y=X, sr=sample_rate, n_mfcc=13).T,axis=0)
+    mfccs = librosa.feature.mfcc(y=X, sr=sample_rate, n_mfcc=41)
     # print mfccs.shape
-    mfccs = np.resize(mfccs, (1, mfccs.shape[0]))
+    if mfccs.shape[1] < max_len:
+        pad = np.zeros((mfccs.shape[0], max_len - mfccs.shape[1]))
+        mfccs = np.hstack((mfccs, pad))
+    elif mfccs.shape[1] > max_len:
+        mfccs = mfccs[:,:max_len ]
+    # print mfccs.shape
+    # mfccs = np.resize(mfccs, (1, mfccs.shape[0]))
     mfccs = np.resize(mfccs, (1, mfccs.shape[0],mfccs.shape[1]))
     # print mfccs.shape
     mfccs = torch.FloatTensor(mfccs)
-
+    # print mfccs
+    mean = mfccs.mean()
+    std = mfccs.std()
+    if std != 0:
+        mfccs.add_(-mean)
+        mfccs.div_(std)
+    # print("new mfccs ", mfccs)
     # print("mfccs dim ", mfccs.shape)
     # print(spect)
     return mfccs
@@ -63,11 +75,11 @@ def spect_loader(path):
 class GCommandLoader(data.Dataset):
 
     def __init__(self, root, normalize=True, max_len=101):
-        print root
+        # print root
         classes, class_to_idx = find_classes(root)
-        print classes
+        # print classes
         spects = make_dataset(root, class_to_idx)
-        print spects
+        # print spects
         if len(spects) == 0:
             raise (RuntimeError("Found 0 sound files in subfolders of: " + root + "Supported audio file extensions are: " + ",".join(AUDIO_EXTENSIONS)))
 
@@ -76,6 +88,7 @@ class GCommandLoader(data.Dataset):
         self.classes = classes
         self.class_to_idx = class_to_idx
         self.loader = spect_loader
+        self.max_len = max_len
 
     def __getitem__(self, index):
         """
