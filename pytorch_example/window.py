@@ -10,8 +10,9 @@ import scipy.io.wavfile as wavfile
 import pydub
 from pydub import AudioSegment
 import librosa
-
-
+from sklearn import preprocessing
+import torch
+from train_lstm import *
 
 def norm_signal(signal):
 
@@ -54,10 +55,15 @@ def feature_extraction(signal,Fs,window_size,step_size):
         # print mfccs
         # print curFV
     print features.shape
-    print features
+    # print features
     return features
 
 
+def normaliser_features(features):
+
+    features_normalisation = preprocessing.scale(features)
+
+    return features_normalisation
 
 def read_audio(wavFile):
 
@@ -79,17 +85,21 @@ def read_audio(wavFile):
         if x.shape[1]==1:
             x = x.flatten()
     # print x
-    print len(x)
-    return x,Fs
-'''
-def cut_audio(wavFile):
+    print ("length of signal",len(x))
     cmd = """ffmpeg -i """ + wavFile + """ 2>&1 | grep "Duration"| cut -d ' ' -f 4 | sed s/,// | awk '{ split($1, A, ":"); print 3600*A[1] + 60*A[2] + A[3] }'"""
     rs = sh.run(cmd, True)
 
     duration_in_wavFile = rs.stdout()
-    print("the duration of wavfile is ", int(duration_in_wavFile)/3600)
+    print("the duration of wavfile is ", duration_in_wavFile)
+
+def write_csv(wavFile,window_size,step_size):
+    cmd = """ffmpeg -i """ + wavFile + """ 2>&1 | grep "Duration"| cut -d ' ' -f 4 | sed s/,// | awk '{ split($1, A, ":"); print 3600*A[1] + 60*A[2] + A[3] }'"""
+    rs = sh.run(cmd, True)
+
+    duration_in_wavFile = rs.stdout()
+    print("the duration of wavfile is ", duration_in_wavFile)
     # print wavFile
-    # name = wavFile.split(os.sep)[2]
+    name = wavFile.split(os.sep)[2]
     # print name
 
     projet = name.split("_")[:3]
@@ -102,27 +112,60 @@ def cut_audio(wavFile):
     hour = date2[:2]
     print date1
     print day
-    print date2,len(hour),minite,second
+    print date2,hour,minite,second
 
-    cut_point = np.linspace(0,int(duration_in_wavFile)/3600,int(duration_in_wavFile)/3600+1)
-    print cut_point
-    dur = 3600
-    path_name = "window/cut/"
-    for i in range(int(duration_in_wavFile)/3600):
-        if i/24==0:
-            if len(str(i))==1:
-                hour= "0"+str(i)
-            else:
-                hour = str(i)
-            name = "WAT_BP_01_161002_"+hour+"0000"
-        else i/24==1:
-            if i ==24:
-                name = "WAT_BP_01_161003_000000"
-            else:
-                name = "WAT_BP_01_161003_"+hour+"000000"
-        # cmd = "ffmpeg -ss " + str(cut_point[i]) + " -t " + str(dur)+ " -i " + wavFile + " " + path_name + waveFile_name +"_"+ str(j) + ".wav"
-        # sh.run(cmd)
-'''
+    result = np.loadtxt("feature/result.txt")
+    len_result = len(result)
+    print int(duration_in_wavFile)/3600
+    str_start = '20'+date1[:2]+"/"+date1[-4:-2]+"/"+date1[-2:]+" "+date2[:2]+":"+date2[-4:-2]+":"+date2[-2:]
+    print str_start
+    start = pd.to_datetime(str_start,format='%Y/%m/%d %H:%M:%S')
+    print start
+    start_time = pd.date_range(start,periods = len_result,freq = '1s')
+    print start_time
+    print type(start_time)
+    print len(start_time)
+    first_end_time = start_time[0]+window_size
+    print first_end_time
+    end_time = pd.date_range(first_end_time,periods = len_result,freq = '1min')
+    print end_time
+    csvFile = open("window/test.csv","w")
+    writer = csv.writer(csvFile)
+    fileHead = ["name","site","start_time","end_time","label"]
+    writer.writerow(fileHead)
+    for i in range(len_result):
+        if result[i]==0:
+            label = 'Ba'
+        elif result[i]==1:
+            label = 'Bm'
+        else:
+            label = 'Eg'
+        d1 = [projet[0],projet[1],start_time[i],end_time[i],label]
+        writer.writerow(d1)
+    csvFile.close()    
+        # dataframe = pd.DataFrame({'name':projet[0],'site':projet[1],'start_time':start_time[i],'end_time':end_time[i],'label':label},index=[i])
+        # dataframe.to_csv("window/test.csv",index = False,sep=',')
+
+def predict():
+    features_normalisation = np.loadtxt("feature/window.txt")
+
+    model_path = 'model/rnn.pkl'
+    # model_path = 'model/rnn_wavelet.pkl'
+    net2 = torch.load(model_path)
+    prediction_x1 = torch.from_numpy(features_normalisation).float()
+    prediction_x = Variable(prediction_x1, requires_grad=False).type(torch.FloatTensor)
+
+    prediction_output = net2(prediction_x.view(-1,1,13))
+    # prediction_output = net2(prediction_x.view(-1,1,12))
+    # 0 is Ba, 1 is Bm, 2 is Eg
+    pred_y = torch.max(prediction_output, 1)[1].data.numpy().squeeze()
+    print("predicition is ",pred_y)
+    np.savetxt("feature/result.txt",pred_y)
+    # print("origin data is ", prediction_y)
+    # accuracy = sum(pred_y == prediction_y) / float(prediction_y.size)
+    # print accuracy
+
+
 
 
 if __name__ == '__main__':
@@ -130,7 +173,7 @@ if __name__ == '__main__':
     wavFile = 'wav/prediction/WAT_OC_01_150520_000000.df100.x.wav'
     window_size = 1
     step_size  = 60
-    # cut_audio(wavFile)
+    '''
     x,Fs = read_audio(wavFile)
     signal= norm_signal(x)
     # signal_txt = "feature/signal.txt"
@@ -141,13 +184,14 @@ if __name__ == '__main__':
     #
     # signal = np.loadtxt(signal_txt)
     # Fs = np.loadtxt(Fs_txt)
-    feature_extraction(signal,Fs,window_size,step_size)
-
-
-
-
-
-
+    features = feature_extraction(signal,Fs,window_size,step_size)
+    features_normalisation = normaliser_features(features)
+    cmd = "rm -rf feature/window.txt"
+    sh.run(cmd)
+    np.savetxt("feature/window.txt",features_normalisation)
+    predict()
+    '''
+    write_csv(wavFile,window_size,step_size)
     '''
     wav_prediction_dir = 'wav/prediction'
     file_ext = '*.wav'

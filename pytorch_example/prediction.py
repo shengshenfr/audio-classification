@@ -7,7 +7,7 @@ import sh
 
 import numpy as np
 from read_csv import *
-from train import *
+from train_lstm import *
 import torch
 
 
