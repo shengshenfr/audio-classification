@@ -127,16 +127,13 @@ def train_rnn(features_normalisation,labels_encode,learning_rate,optimizer,drop_
                 acc.append(accuracy)
                 # print('Epoch: ', epoch, '| train loss: %.4f' % loss.data[0], '| test accuracy: %.4f' % accuracy)
 
-    # model_path = 'model/rnn.pkl'
-    model_path = 'model/rnn.pkl'
-    # model_path = 'model/rnn_wavelet.pkl'
-    torch.save(rnn,model_path)
-    return max(acc)
+
+    return max(acc),rnn
 
 
 
 if __name__ == "__main__":
-    cmd = "rm -rf model/*"
+    cmd = "rm -rf model/model_lstm.pkl"
     sh.run(cmd)
     '''
     read_dir = "read"
@@ -153,8 +150,18 @@ if __name__ == "__main__":
     learning_rate = [0.01,0.1,0.5]
     opt = ['Adam','SGD']
     drop_out = [0.05,0.1,0.2]
+
+    best_acc = 0
+
     for lr in learning_rate:
         for op in opt:
             for do in drop_out:
-                accuracy = train_rnn(features_normalisation,labels_encode,lr,op,do)
+                accuracy,rnn = train_rnn(features_normalisation,labels_encode,lr,op,do)
                 print('learning_rate:' ,lr,'| optimizer: ',op,'| dropout: ',do,'| accuracy: ',accuracy)
+
+                if accuracy < best_acc:
+                    print('Accuracy was not improved')
+                else:
+                    print('Saving model...')
+                    best_acc = accuracy
+                    torch.save(rnn, 'model/model_lstm.pkl')

@@ -16,10 +16,10 @@ def main():
     read_dir = "read"
     padding_dir = "padding"
     redimension_dir = "redimension"
-
+    window_dir = "window"
     sample_csv_dir = "sample_csv"
     wav_dir = "wav"
-    dir_name = feature_dir +" "+ model_dir +" "+ prediction_wav_dir +" "+ read_dir +" "+ padding_dir +" "+ redimension_dir +" "+ sample_csv_dir  +" "+ wav_dir
+    dir_name = feature_dir +" "+ model_dir +" "+ prediction_wav_dir +" "+ read_dir +" "+ padding_dir +" "+ redimension_dir +" "+ sample_csv_dir  +" "+ wav_dir+" "+ window_dir
     sh.run("mkdir -p "+ dir_name)
     #sh.run("rm -rf "+str_name)
 

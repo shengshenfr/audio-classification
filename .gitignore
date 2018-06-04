@@ -3,4 +3,6 @@
 *.pyc
 test.py
 test/
-feature/*
+*.txt
+*.csv
+*.pkl
