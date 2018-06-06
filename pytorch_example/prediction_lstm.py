@@ -47,7 +47,7 @@ def date_type(wav_dir,segProjet,segSite,segStart,duration,segLabel,segQuality,pr
 
 def prepration():
 
-    sample_file_dir = "sample_csv/WAT"
+    sample_file_dir = "sample_csv/prediction"
     prediction_wav_dir = "prediction_wav"
     wav_dir = "wav/prediction"
     # result_eg_dir = "prediction_wav/eg"
@@ -96,7 +96,7 @@ def predict():
     features_normalisation = np.loadtxt("feature/prediction_features.txt")
     labels_encode = np.loadtxt("feature/prediction_label.txt")
 
-    model_path = 'model/rnn.pkl'
+    model_path = 'model/model_lstm.pkl'
     # model_path = 'model/rnn_wavelet.pkl'
     net2 = torch.load(model_path)
     prediction_x1, prediction_y1 = torch.from_numpy(features_normalisation).float(), torch.from_numpy(labels_encode).long()
@@ -116,10 +116,10 @@ def predict():
 
 if __name__ == '__main__':
     #clean files
-    '''
+
     cmd = "rm -rf feature/*"
     sh.run(cmd)
     prepration()
     get_features()
-    '''
+
     predict()

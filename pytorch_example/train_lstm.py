@@ -142,8 +142,8 @@ if __name__ == "__main__":
     features,labels = parse_audio_files_librosa(read_dir,sub_read,file_ext)
     features,labels = parse_audio_files_waveletPackets(read_dir,sub_read,file_ext)
     '''
-    features_normalisation = np.loadtxt("feature/prediction_features.txt")
-    labels_encode = np.loadtxt("feature/prediction_label.txt")
+    features_normalisation = np.loadtxt("feature/train_features.txt")
+    labels_encode = np.loadtxt("feature/train_label.txt")
 
     print features_normalisation.shape
     print (len(features_normalisation))

@@ -172,4 +172,4 @@ if __name__ == "__main__":
     clean(redimension__test_dir)
     read_audio(read_dir,sub_dirs,T_total,padding_dir,labels)
     cut_padding_audio(padding_dir,sub_dirs,T_total,redimension_dir,labels)
-    # clean(padding_dir)
+    clean(padding_dir)

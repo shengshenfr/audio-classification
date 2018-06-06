@@ -214,7 +214,7 @@ if __name__ == "__main__":
     #print type(labels_encode)
     cmd = "rm -rf feature/*"
     sh.run(cmd)
-    np.savetxt("feature/prediction_features.txt",features_normalisation)
-    np.savetxt("feature/prediction_label.txt",labels_encode)
+    np.savetxt("feature/train_features.txt",features_normalisation)
+    np.savetxt("feature/train_label.txt",labels_encode)
 
     # parse_audio_files_waveletPackets(read_dir,sub_read,file_ext)
