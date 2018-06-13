@@ -160,8 +160,8 @@ if __name__ == "__main__":
     labels_wavelet = np.loadtxt("feature/train_label_wavelet.txt")
     # print np.unique(labels_wavelet)
 
-    features_wavenet = np.loadtxt("feature/features_wavenet.txt")
-    labels_wavenet = np.loadtxt("feature/label_wavenet.txt")
+    features_wavenet = np.loadtxt("feature/train_features_wavenet.txt")
+    labels_wavenet = np.loadtxt("feature/train_label_wavenet.txt")
     # print np.unique(labels_wavenet)
 
     for type in types:

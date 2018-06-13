@@ -228,7 +228,7 @@ def encode_label(labels):
 if __name__ == "__main__":
 
     read_dir = "read"
-    sub_read = ['Ba', 'Bm','Eg']
+    sub_read = ['Bm','Eg']
     file_ext='*.wav'
 
     cmd = "rm -rf feature/*"
@@ -257,5 +257,5 @@ if __name__ == "__main__":
     features_wavenet = normaliser_features(features_wavenet)
     labels_wavenet = encode_label(labels_wavenet)
 
-    np.savetxt("feature/features_wavenet.txt",features_wavenet)
-    np.savetxt("feature/label_wavenet.txt",labels_wavenet)
+    np.savetxt("feature/train_features_wavenet.txt",features_wavenet)
+    np.savetxt("feature/train_label_wavenet.txt",labels_wavenet)
