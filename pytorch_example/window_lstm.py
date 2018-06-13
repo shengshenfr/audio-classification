@@ -38,12 +38,12 @@ def feature_extraction(signal,Fs,window_size,step_size):
     totalNumOfFeatures = 13
 
     while (curPos + Win - 1 < N):
-        countFrames += 1
+        # countFrames += 1
         X = signal[curPos:curPos+Win]                    # get current window
         curPos = curPos + Step                           # update window position
 
-        if countFrames == 1:
-            Xprev = X.copy()                             # keep previous fft mag (used in spectral flux)
+        # if countFrames == 1:
+        #     Xprev = X.copy()                             # keep previous fft mag (used in spectral flux)
 
         mfccs = np.mean(librosa.feature.mfcc(y=X, sr=Fs, n_mfcc=13),axis=1)
         ext_features = np.hstack([mfccs])

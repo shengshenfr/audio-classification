@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import util
 from extration import *
 
-from sklearn import preprocessing
+from sklearn import preprocessing,metrics
 
 import torch
 from torch import nn
@@ -19,9 +19,6 @@ from torch.nn import init
 import torch.utils.data as Data
 import torch.nn.functional as F
 
-
-input_size = 13
-# input_size = 12
 
 hidden_size = 80
 num_layers = 2
@@ -72,7 +69,7 @@ def split_data(train_features,train_labels):
 
 
 
-def train_rnn(features_normalisation,labels_encode,learning_rate,optimizer,drop_out):
+def train_rnn(features_normalisation,labels_encode,learning_rate,optimizer,drop_out,type):
 
     train_x,train_y,test_x,test_y = split_data(features_normalisation,labels_encode)
     x, y = torch.from_numpy(train_x).float(), torch.from_numpy(train_y).long()
@@ -88,10 +85,17 @@ def train_rnn(features_normalisation,labels_encode,learning_rate,optimizer,drop_
     test_x = Variable(test_x1, requires_grad=False).type(torch.FloatTensor)
     test_y = test_y1.numpy().squeeze() # covert to numpy array
 
+    if type =='mfcc':
+        input_size = 13
+    elif type =='wavelet':
+        input_size = 12
+    elif type == 'wavenet':
+        input_size =200
+
     rnn = RNN(input_size, hidden_size, num_layers, num_classes,drop_out)
     # print(rnn)
 
-    if op == 'Adam':
+    if optimizer == 'Adam':
         optimizer = torch.optim.Adam(rnn.parameters(), lr=learning_rate)
     else:
         optimizer = torch.optim.SGD(rnn.parameters(), lr=learning_rate)
@@ -102,10 +106,12 @@ def train_rnn(features_normalisation,labels_encode,learning_rate,optimizer,drop_
     for epoch in range(num_epochs):
         for step, (x, y) in enumerate(train_loader):   # gives batch data
             #print (x.shape)
-            # b_x = Variable(x.view(-1,13))
-
-            b_x = Variable(x.view(-1,1,13), requires_grad=False)
-            # b_x = Variable(x.view(-1,1,12), requires_grad=False)
+            if type =='mfcc':
+                b_x = Variable(x.view(-1,1,13), requires_grad=False)
+            elif type =='wavelet':
+                b_x = Variable(x.view(-1,1,12), requires_grad=False)
+            elif type == 'wavenet':
+                b_x = Variable(x.view(-1,1,200), requires_grad=False)
             #print (b_x.shape)
             #print b_x
             b_y = Variable(y.view(-1), requires_grad=False)   # batch y
@@ -118,14 +124,18 @@ def train_rnn(features_normalisation,labels_encode,learning_rate,optimizer,drop_
             optimizer.step()                # apply gradients
 
             if step % 50 == 0:
-                # test_output = net(test_x)
-                # test_output = rnn(test_x.view(-1,1,13))
-                test_output = rnn(test_x.view(-1,1,13))
-                # test_output = rnn(test_x.view(-1,1,12))
+                if type =='mfcc':
+                    test_output = rnn(test_x.view(-1,1,13))
+                elif type =='wavelet':
+                    test_output = rnn(test_x.view(-1,1,12))
+                elif type == 'wavenet':
+                    test_output = rnn(test_x.view(-1,1,200))
+
                 pred_y = torch.max(test_output, 1)[1].data.numpy().squeeze()
                 accuracy = sum(pred_y == test_y) / float(test_y.size)
                 acc.append(accuracy)
-                # print('Epoch: ', epoch, '| train loss: %.4f' % loss.data[0], '| test accuracy: %.4f' % accuracy)
+
+                print('Epoch: ', epoch, '| train loss: %.4f' % loss.data[0], '| test accuracy: %.4f' % accuracy)
 
 
     return max(acc),rnn
@@ -133,20 +143,44 @@ def train_rnn(features_normalisation,labels_encode,learning_rate,optimizer,drop_
 
 
 if __name__ == "__main__":
-    cmd = "rm -rf model/model_lstm.pkl"
-    sh.run(cmd)
-    '''
-    read_dir = "read"
-    sub_read = ['Bm','Eg']
-    file_ext='*.wav'
-    features,labels = parse_audio_files_librosa(read_dir,sub_read,file_ext)
-    features,labels = parse_audio_files_waveletPackets(read_dir,sub_read,file_ext)
-    '''
-    features_normalisation = np.loadtxt("feature/train_features.txt")
-    labels_encode = np.loadtxt("feature/train_label.txt")
 
-    print features_normalisation.shape
-    print (len(features_normalisation))
+
+    cmd = "rm -rf model/*"
+    sh.run(cmd)
+
+    learning_rate = 0.01
+    optimizer = 'Adam'
+    dropout = 0.05
+    types = ['mfcc','wavelet','wavenet']
+    features_mfcc = np.loadtxt("feature/train_features_mfcc.txt")
+    labels_mfcc = np.loadtxt("feature/train_label_mfcc.txt")
+    # print np.unique(labels_mfcc)
+
+    features_wavelet = np.loadtxt("feature/train_features_wavelet.txt")
+    labels_wavelet = np.loadtxt("feature/train_label_wavelet.txt")
+    # print np.unique(labels_wavelet)
+
+    features_wavenet = np.loadtxt("feature/features_wavenet.txt")
+    labels_wavenet = np.loadtxt("feature/label_wavenet.txt")
+    # print np.unique(labels_wavenet)
+
+    for type in types:
+        print(type)
+        if type =='mfcc':
+            _,rnn1 = train_rnn(features_mfcc,labels_mfcc,learning_rate,optimizer,dropout,type)
+            torch.save(rnn1, 'model/mfcc_model_lstm.pkl')
+        elif type == 'wavelet':
+            _,rnn2 = train_rnn(features_wavelet,labels_wavelet,learning_rate,optimizer,dropout,type)
+            torch.save(rnn2, 'model/wavelet_model_lstm.pkl')
+        else:
+            _,rnn3 = train_rnn(features_wavenet,labels_wavenet,learning_rate,optimizer,dropout,type)
+            torch.save(rnn3, 'model/wavenet_model_lstm.pkl')
+
+
+    '''
+    type = 'mfcc'
+    features_mfcc = np.loadtxt("feature/train_features_mfcc.txt")
+    labels_mfcc = np.loadtxt("feature/train_label_mfcc.txt")
     learning_rate = [0.01,0.1,0.5]
     opt = ['Adam','SGD']
     drop_out = [0.05,0.1,0.2]
@@ -156,7 +190,7 @@ if __name__ == "__main__":
     for lr in learning_rate:
         for op in opt:
             for do in drop_out:
-                accuracy,rnn = train_rnn(features_normalisation,labels_encode,lr,op,do)
+                accuracy,rnn = train_rnn(features_mfcc,labels_mfcc,lr,op,do,type)
                 print('learning_rate:' ,lr,'| optimizer: ',op,'| dropout: ',do,'| accuracy: ',accuracy)
 
                 if accuracy < best_acc:
@@ -164,4 +198,5 @@ if __name__ == "__main__":
                 else:
                     print('Saving model...')
                     best_acc = accuracy
-                    torch.save(rnn, 'model/model_lstm.pkl')
+                    torch.save(rnn, 'model/best_mfcc_model_lstm.pkl')
+    '''

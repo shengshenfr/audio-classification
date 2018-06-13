@@ -9,7 +9,7 @@ import numpy as np
 from read_csv import *
 from train_lstm import *
 import torch
-
+from sklearn import metrics
 
 
 def date_type(wav_dir,segProjet,segSite,segStart,duration,segLabel,segQuality,prediction_wav_dir):
@@ -111,7 +111,7 @@ def predict():
     print("origin data is ", prediction_y)
     accuracy = sum(pred_y == prediction_y) / float(prediction_y.size)
     print accuracy
-
+    print (metrics.classification_report(prediction_y, pred_y))
 
 
 if __name__ == '__main__':

@@ -5,7 +5,7 @@ import os
 import sklearn.svm
 import csv
 import glob
-from sklearn import preprocessing,metrics
+from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import make_pipeline
 from sklearn import svm
