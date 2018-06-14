@@ -319,7 +319,7 @@ if __name__ == '__main__':
 
 
 	# knn = train_knn(features_normalization,lable, knn_best_parameter)
-	# svm = train_svm(features_normalization,lable, svm_best_parameter)
+	svm = train_svm(features_normalization,lable, svm_best_parameter)
 	# # features = preprocessing.minmax_scale(features,axis=0,feature_range=(0,1))
 
 	# # print(features)

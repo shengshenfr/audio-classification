@@ -121,7 +121,7 @@ def write_csv(wavFile,window_size,step_size,result):
     # print start_time
     # print type(start_time)
     # print len(start_time)
-    first_end_time = start_time[0]+window_size
+    first_end_time = start_time[0]+1
     # print first_end_time
     end_time = pd.date_range(first_end_time,periods = len_result,freq = '1min')
     # print end_time
