@@ -1,4 +1,8 @@
-
+*.wav
+*.mp3
 *.pyc
 test.py
 test/
+*.txt
+*.csv
+*.pkl
