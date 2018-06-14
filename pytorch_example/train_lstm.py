@@ -137,6 +137,16 @@ def train_rnn(features_normalisation,labels_encode,learning_rate,optimizer,drop_
 
                 print('Epoch: ', epoch, '| train loss: %.4f' % loss.data[0], '| test accuracy: %.4f' % accuracy)
 
+    if type =='mfcc':
+        pre_output = rnn(test_x.view(-1,1,13))
+    elif type =='wavelet':
+        pre_output = rnn(test_x.view(-1,1,12))
+    elif type == 'wavenet':
+        pre_output = rnn(test_x.view(-1,1,200))
+    pred_y = torch.max(pre_output, 1)[1].data.numpy().squeeze()
+    # accuracy = sum(pred_y == test_y) / float(test_y.size)
+    print (metrics.classification_report(test_y, pred_y))
+
 
     return max(acc),rnn
 

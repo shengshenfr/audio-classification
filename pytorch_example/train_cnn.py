@@ -18,9 +18,11 @@ import librosa
 
 batch_size = 1
 num_epochs = 1
+num_classes = 2
+num_kernel_size = 2
 
 class CNN(nn.Module):
-    def __init__(self,drop_out):
+    def __init__(self,drop_out,totalNumOfFeatures,max_len):
         super(CNN, self).__init__()
         self.conv1 = nn.Sequential(         # input shape (1, 28, 28)
             nn.Conv2d(
@@ -31,15 +33,15 @@ class CNN(nn.Module):
                 padding=2,                  # if want same width and length of this image after con2d, padding=(kernel_size-1)/2 if stride=1
             ),                              # output shape (16, 28, 28)
             nn.ReLU(),                      # activation
-            nn.MaxPool2d(kernel_size=2),    # choose max value in 2x2 area, output shape (16, 14, 14)
+            nn.MaxPool2d(kernel_size=num_kernel_size),    # choose max value in 2x2 area, output shape (16, 14, 14)
         )
         self.conv2 = nn.Sequential(         # input shape (16, 14, 14)
             nn.Conv2d(16, 32, 5, 1, 2),     # output shape (32, 14, 14)
             nn.Dropout2d(p = drop_out),
             nn.ReLU(),                      # activation
-            nn.MaxPool2d(2),                # output shape (32, 7, 7)
+            nn.MaxPool2d(kernel_size=num_kernel_size),                # output shape (32, 7, 7)
         )
-        self.out = nn.Linear(32 * 7 * 7, 3)   # fully connected layer, output 10 classes
+        self.out = nn.Linear(32 * (totalNumOfFeatures/(num_kernel_size*num_kernel_size)) * (totalNumOfFeatures/(num_kernel_size*num_kernel_size)), num_classes)   # fully connected layer, output 2 classes
 
     def forward(self, x):
         x = self.conv1(x)
@@ -95,9 +97,8 @@ def train(train_features,train_labels,test_features,test_labels,cnn,loss_func,op
 
 
 
-def get_features(redimension_dir,redimension_subs,file_ext):
-    totalNumOfFeatures = 28
-    max_len = 28
+def get_features(redimension_dir,redimension_subs,file_ext,totalNumOfFeatures,max_len):
+
     features = np.empty((0,totalNumOfFeatures,max_len))
 
     labels = np.empty(0)
@@ -151,11 +152,15 @@ if __name__ == "__main__":
 
     test_path = "redimension/test"
 
-    redimension_subs = ['Ba', 'Bm','Eg']
+    redimension_subs = ['Bm','Eg']
     file_ext='*.wav'
-    train_features,train_labels = get_features(train_path,redimension_subs,file_ext)
 
-    test_features,test_labels = get_features(test_path,redimension_subs,file_ext)
+    totalNumOfFeatures = 28
+    max_len = 28
+
+    train_features,train_labels = get_features(train_path,redimension_subs,file_ext,totalNumOfFeatures,max_len)
+
+    test_features,test_labels = get_features(test_path,redimension_subs,file_ext,totalNumOfFeatures,max_len)
     '''
     cnn = CNN(0.1)
     print cnn
@@ -171,7 +176,7 @@ if __name__ == "__main__":
     drop_out = [0.05,0.1,0.2]
 
     for do in drop_out:
-        cnn = CNN(do)
+        cnn = CNN(do,totalNumOfFeatures,max_len)
         loss_func = nn.CrossEntropyLoss()
         for lr in learning_rate:
             for op in opt:

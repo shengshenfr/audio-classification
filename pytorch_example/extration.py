@@ -228,7 +228,7 @@ def encode_label(labels):
 if __name__ == "__main__":
 
     read_dir = "read"
-    sub_read = ['Bm','Eg']
+    sub_read = ['Ba','Bm','Eg']
     file_ext='*.wav'
 
     cmd = "rm -rf feature/*"
