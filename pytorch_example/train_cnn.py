@@ -93,6 +93,10 @@ def train(train_features,train_labels,test_features,test_labels,cnn,loss_func,op
                 # print type(loss.data[0].numpy())
                 test_loss = np.append(test_loss, loss.data[0].numpy())
                 acc.append(accuracy)
+    pre_output,_ = cnn(test_x)
+    pred_y = torch.max(pre_output, 1)[1].data.numpy().squeeze()
+    print (metrics.classification_report(test_y.numpy(), pred_y
+    
     return min(test_loss),max(acc)
 
 
