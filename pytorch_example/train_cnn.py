@@ -7,7 +7,7 @@ from torch.autograd import Variable
 from torch.nn import init
 import torch.utils.data as Data
 import torch.nn.functional as F
-
+from sklearn import metrics
 import sys
 import os
 import glob
@@ -96,7 +96,7 @@ def train(train_features,train_labels,test_features,test_labels,cnn,loss_func,op
     pre_output,_ = cnn(test_x)
     pred_y = torch.max(pre_output, 1)[1].data.numpy().squeeze()
     print (metrics.classification_report(test_y.numpy(), pred_y
-    
+
     return min(test_loss),max(acc)
 
 
