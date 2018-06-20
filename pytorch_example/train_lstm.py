@@ -115,9 +115,10 @@ def train_rnn(features_normalisation,labels_encode,learning_rate,optimizer,drop_
             #print (b_x.shape)
             #print b_x
             b_y = Variable(y.view(-1), requires_grad=False)   # batch y
-            #print (b_y)
+            # print (b_y)
             # output = net(b_x)               # rnn output
             output = rnn(b_x)
+            # print output
             loss = loss_func(output, b_y)   # cross entropy loss
             optimizer.zero_grad()           # clear gradients for this training step
             loss.backward()                 # backpropagation, compute gradients

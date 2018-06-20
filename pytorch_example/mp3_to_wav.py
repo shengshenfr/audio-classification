@@ -18,7 +18,7 @@ def run(mp3_file, wav_dir):
     duration_in_s = rs.stdout()
     print(duration_in_s)
     print("total duration is " + duration_in_s + "s")
-    step_s = 600
+    step_s = 60
 
     for i in range(0, int(float(duration_in_s)), step_s):
         wav_file = wav_dir + "/" + str(i) + ".wav"
@@ -29,3 +29,7 @@ def run(mp3_file, wav_dir):
         # clean files
         # cmd = "rm -rf " + wav_dir  + "/*"
         # sh.run(cmd)
+if __name__ == '__main__':
+    mp3_file = 'mp3/music.mp3'
+    wav_dir = 'mp3/'
+    run(mp3_file , wav_dir)
