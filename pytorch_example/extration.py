@@ -1,5 +1,4 @@
 import numpy as np
-from sys import argv
 import sys
 import os
 import glob
@@ -11,17 +10,8 @@ import librosa
 import math
 from sklearn import preprocessing
 
-def format_array(arr):
-    return "[%s]" % ", ".join(["%.14f" % x for x in arr])
 
 def extration_wavelet_packet(wavFile):
-    # wavelet = pywt.Wavelet('db1')
-    # print(format_array(wavelet.dec_lo), format_array(wavelet.dec_hi))
-    # wavelet = pywt.Wavelet('db2')
-    # print(format_array(wavelet.dec_lo), format_array(wavelet.dec_hi))
-    # wavelet = pywt.Wavelet('db3')
-    # print(format_array(wavelet.dec_lo), format_array(wavelet.dec_hi))
-
 
     sig, fs = librosa.load(wavFile)
     print("fs is ",fs)
@@ -74,7 +64,7 @@ def get_e(l,N_limit,wp,Node):
     el = float(sum/N_limit)
     return el
 
-def extration_librosa(wavFile):
+def extration_mfcc(wavFile):
 
     # Read the wav file
     X, sample_rate = librosa.load(wavFile)
@@ -100,7 +90,7 @@ def extration_librosa(wavFile):
     '''
     return mfccs
 
-def extration_wavenet(wavFile,max_len,sample_rate):
+def extration_rawSignal(wavFile,max_len,sample_rate):
 
     # Read the wav file
     X, sample_rate = librosa.load(wavFile, sr=sample_rate, mono=True)
@@ -117,7 +107,7 @@ def extration_wavenet(wavFile,max_len,sample_rate):
     return X
 
 
-def parse_audio_files_wavenet(redimension_dir,sub_read,file_ext):
+def parse_audio_files_rawSignal(redimension_dir,sub_read,file_ext):
     max_len=200
     sample_rate=100
     features, labels = np.empty((0,max_len)), np.empty(0)
@@ -128,7 +118,7 @@ def parse_audio_files_wavenet(redimension_dir,sub_read,file_ext):
             print("extract file: %s" % (f))
             waveFile_name = (os.path.splitext(f)[0]).split(os.sep)[2]
             try:
-                audio = extration_wavenet(f,max_len,sample_rate)
+                audio = extration_rawSignal(f,max_len,sample_rate)
 
             except Exception as e:
                 print("[Error] extract feature error. %s" % (e))
@@ -174,7 +164,7 @@ def parse_audio_files_waveletPackets(read_dir,sub_read,file_ext):
     return np.array(features), np.array(labels, dtype = np.int)
 
 
-def parse_audio_files_librosa(read_dir,sub_read,file_ext):
+def parse_audio_files_mfcc(read_dir,sub_read,file_ext):
     features, labels = np.empty((0,13)), np.empty(0)
     for label, sub_dir in enumerate(sub_read):
         print("label: %s" % (label))
@@ -184,7 +174,7 @@ def parse_audio_files_librosa(read_dir,sub_read,file_ext):
             waveFile_name = (os.path.splitext(f)[0]).split(os.sep)[2]
             quality = util.splitext(waveFile_name)[2]
             try:
-                mfccs = extration_librosa(f)
+                mfccs = extration_mfcc(f)
                 # print len(mfccs),len(chroma),len(mel),len(contrast)
                 print (len(mfccs))
                 #print ("mfcc is",np.array(mfccs))
@@ -228,13 +218,13 @@ def encode_label(labels):
 if __name__ == "__main__":
 
     read_dir = "read"
-    sub_read = ['Ba','Bm','Eg']
+    sub_read = ['Bm','Eg']
     file_ext='*.wav'
 
     cmd = "rm -rf feature/*"
     sh.run(cmd)
     ############ mfcc
-    features_mfcc,labels_mfcc = parse_audio_files_librosa(read_dir,sub_read,file_ext)
+    features_mfcc,labels_mfcc = parse_audio_files_mfcc(read_dir,sub_read,file_ext)
     features_mfcc = normaliser_features(features_mfcc)
     # print ("features noramallisation are ",features_normalisation)
     labels_mfcc = encode_label(labels_mfcc)
@@ -252,10 +242,10 @@ if __name__ == "__main__":
     np.savetxt("feature/train_features_wavelet.txt",features_wavelet)
     np.savetxt("feature/train_label_wavelet.txt",labels_wavelet)
 
-    ###########  wavenet
-    features_wavenet,labels_wavenet = parse_audio_files_wavenet(read_dir,sub_read,file_ext)
-    features_wavenet = normaliser_features(features_wavenet)
-    labels_wavenet = encode_label(labels_wavenet)
+    ###########  raw signal
+    features_rawSignal,labels_rawSignal = parse_audio_files_rawSignal(read_dir,sub_read,file_ext)
+    features_rawSignal = normaliser_features(features_rawSignal)
+    labels_rawSignal = encode_label(labels_rawSignal)
 
-    np.savetxt("feature/train_features_wavenet.txt",features_wavenet)
-    np.savetxt("feature/train_label_wavenet.txt",labels_wavenet)
+    np.savetxt("feature/train_features_rawSignal.txt",features_rawSignal)
+    np.savetxt("feature/train_label_rawSignal.txt",labels_rawSignal)

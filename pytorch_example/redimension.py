@@ -1,5 +1,4 @@
 import numpy as np
-from sys import argv
 import sys
 import os
 import glob

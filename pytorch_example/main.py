@@ -1,11 +1,9 @@
 import numpy as np
-import mp3_to_wav
 import sh
 import sys
 import os
 import csv
 import glob
-import pandas as pd
 
 def main():
     # mp3_dir = "mp3"

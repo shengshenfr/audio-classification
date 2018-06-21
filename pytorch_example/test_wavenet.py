@@ -15,9 +15,9 @@ import librosa
 from sklearn import preprocessing
 
 
-LAYER_SIZE = 3  # 10 in paper
+LAYER_SIZE = 4  # 10 in paper
 STACK_SIZE = 1  # 5 in paper
-IN_CHANNELS = 3  # 256 in paper. quantized and one-hot input.
+IN_CHANNELS = 2  # 256 in paper. quantized and one-hot input.
 RES_CHANNELS = 20 # 512 in paper
 EPOCHS = 1
 BATCH_SIZE =1
@@ -96,8 +96,6 @@ def encode_label(labels):
     return labels_encode
 
 
-
-
 def normaliser_features(features):
 
     features_normalisation = preprocessing.scale(features)
@@ -105,24 +103,6 @@ def normaliser_features(features):
     return features_normalisation
 
 
-def mu_law_encode(audio, quantization_channels=256):
-    """
-    Quantize waveform amplitudes.
-    Reference: https://github.com/vincentherrmann/pytorch-wavenet/blob/master/audio_data.py
-    """
-    mu = float(quantization_channels - 1)
-    quantize_space = np.linspace(-1, 1, quantization_channels)
-
-    quantized = np.sign(audio) * np.log(1 + mu * np.abs(audio)) / np.log(mu + 1)
-    quantized = np.digitize(quantized, quantize_space) - 1
-
-    return quantized
-
-def one_hot_encode(data, channels=256):
-    one_hot = np.zeros((data.size, channels), dtype=float)
-    one_hot[np.arange(data.size), data.ravel()] = 1
-
-    return one_hot
 
 if __name__ == '__main__':
 
@@ -214,4 +194,4 @@ if __name__ == '__main__':
                 test_output = net(test_x.view(-1,IN_CHANNELS,rec_fields+1))
                 pred_y = torch.max(test_output, 1)[1].data.numpy().squeeze()
                 accuracy = sum(pred_y == test_y) / float(test_y.size)
-                print('train loss: %.4f' % loss.data[0], '| test accuracy: %.4f' % accuracy)
+                print(train loss: %.4f' % loss.data[0], '| test accuracy: %.4f' % accuracy)
