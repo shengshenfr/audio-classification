@@ -1,4 +1,3 @@
-
 import sys
 import os
 import glob
@@ -89,7 +88,7 @@ def train_rnn(features_normalisation,labels_encode,learning_rate,optimizer,drop_
         input_size = 13
     elif type =='wavelet':
         input_size = 12
-    elif type == 'wavenet':
+    elif type == 'rawSignal':
         input_size =200
 
     rnn = RNN(input_size, hidden_size, num_layers, num_classes,drop_out)
@@ -110,7 +109,7 @@ def train_rnn(features_normalisation,labels_encode,learning_rate,optimizer,drop_
                 b_x = Variable(x.view(-1,1,13), requires_grad=False)
             elif type =='wavelet':
                 b_x = Variable(x.view(-1,1,12), requires_grad=False)
-            elif type == 'wavenet':
+            elif type == 'rawSignal':
                 b_x = Variable(x.view(-1,1,200), requires_grad=False)
             #print (b_x.shape)
             #print b_x
@@ -129,7 +128,7 @@ def train_rnn(features_normalisation,labels_encode,learning_rate,optimizer,drop_
                     test_output = rnn(test_x.view(-1,1,13))
                 elif type =='wavelet':
                     test_output = rnn(test_x.view(-1,1,12))
-                elif type == 'wavenet':
+                elif type == 'rawSignal':
                     test_output = rnn(test_x.view(-1,1,200))
 
                 pred_y = torch.max(test_output, 1)[1].data.numpy().squeeze()
@@ -142,7 +141,7 @@ def train_rnn(features_normalisation,labels_encode,learning_rate,optimizer,drop_
         pre_output = rnn(test_x.view(-1,1,13))
     elif type =='wavelet':
         pre_output = rnn(test_x.view(-1,1,12))
-    elif type == 'wavenet':
+    elif type == 'rawSignal':
         pre_output = rnn(test_x.view(-1,1,200))
     pred_y = torch.max(pre_output, 1)[1].data.numpy().squeeze()
     # accuracy = sum(pred_y == test_y) / float(test_y.size)
@@ -162,7 +161,7 @@ if __name__ == "__main__":
     learning_rate = 0.01
     optimizer = 'Adam'
     dropout = 0.05
-    types = ['mfcc','wavelet','wavenet']
+    types = ['mfcc','wavelet','rawSignal']
     features_mfcc = np.loadtxt("feature/train_features_mfcc.txt")
     labels_mfcc = np.loadtxt("feature/train_label_mfcc.txt")
     # print np.unique(labels_mfcc)
@@ -171,9 +170,9 @@ if __name__ == "__main__":
     labels_wavelet = np.loadtxt("feature/train_label_wavelet.txt")
     # print np.unique(labels_wavelet)
 
-    features_wavenet = np.loadtxt("feature/train_features_wavenet.txt")
-    labels_wavenet = np.loadtxt("feature/train_label_wavenet.txt")
-    # print np.unique(labels_wavenet)
+    features_rawSignal = np.loadtxt("feature/train_features_rawSignal.txt")
+    labels_rawSignal = np.loadtxt("feature/train_label_rawSignal.txt")
+    # print np.unique(labels_rawSignal)
 
     for type in types:
         print(type)
@@ -183,10 +182,9 @@ if __name__ == "__main__":
         elif type == 'wavelet':
             _,rnn2 = train_rnn(features_wavelet,labels_wavelet,learning_rate,optimizer,dropout,type)
             torch.save(rnn2, 'model/wavelet_model_lstm.pkl')
-        else:
-            _,rnn3 = train_rnn(features_wavenet,labels_wavenet,learning_rate,optimizer,dropout,type)
-            torch.save(rnn3, 'model/wavenet_model_lstm.pkl')
-
+        elif type == 'rawSignal':
+            _,rnn3 = train_rnn(features_rawSignal,labels_rawSignal,learning_rate,optimizer,dropout,type)
+            torch.save(rnn3, 'model/rawSignal_model_lstm.pkl')
 
     '''
     type = 'mfcc'
