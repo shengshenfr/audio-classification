@@ -4,7 +4,6 @@ import glob
 
 import numpy as np
 import math
-import matplotlib.pyplot as plt
 
 import util
 from extration import *
@@ -22,7 +21,7 @@ import torch.nn.functional as F
 hidden_size = 80
 num_layers = 2
 num_classes = 3
-batch_size = 1
+batch_size = 50
 num_epochs = 1
 
 
@@ -100,9 +99,9 @@ def train_rnn(features_normalisation,labels_encode,learning_rate,optimizer,drop_
         optimizer = torch.optim.SGD(rnn.parameters(), lr=learning_rate)
     loss_func = nn.CrossEntropyLoss()
 
-    acc = []
 
     for epoch in range(num_epochs):
+        global_epoch_loss = 0
         for step, (x, y) in enumerate(train_loader):   # gives batch data
             #print (x.shape)
             if type =='mfcc':
@@ -122,6 +121,7 @@ def train_rnn(features_normalisation,labels_encode,learning_rate,optimizer,drop_
             optimizer.zero_grad()           # clear gradients for this training step
             loss.backward()                 # backpropagation, compute gradients
             optimizer.step()                # apply gradients
+            global_epoch_loss += loss.data[0]
 
             if step % 50 == 0:
                 if type =='mfcc':
@@ -132,9 +132,8 @@ def train_rnn(features_normalisation,labels_encode,learning_rate,optimizer,drop_
                     test_output = rnn(test_x.view(-1,1,200))
 
                 pred_y = torch.max(test_output, 1)[1].data.numpy().squeeze()
-                accuracy = sum(pred_y == test_y) / float(test_y.size)
-                acc.append(accuracy)
 
+                accuracy = sum(pred_y == test_y) / float(test_y.size)
                 print('Epoch: ', epoch, '| train loss: %.4f' % loss.data[0], '| test accuracy: %.4f' % accuracy)
 
     if type =='mfcc':
@@ -145,19 +144,20 @@ def train_rnn(features_normalisation,labels_encode,learning_rate,optimizer,drop_
         pre_output = rnn(test_x.view(-1,1,200))
     pred_y = torch.max(pre_output, 1)[1].data.numpy().squeeze()
     # accuracy = sum(pred_y == test_y) / float(test_y.size)
-    print (metrics.classification_report(test_y, pred_y))
+    # print (metrics.classification_report(test_y, pred_y))
 
-
-    return max(acc),rnn
+    # print float(global_epoch_loss.numpy())
+    # print float(test_y.size)
+    return float(global_epoch_loss.numpy())/float(test_y.size),rnn
 
 
 
 if __name__ == "__main__":
 
 
-    cmd = "rm -rf model/*"
-    sh.run(cmd)
-
+    # cmd = "rm -rf model/*"
+    # sh.run(cmd)
+    '''
     learning_rate = 0.01
     optimizer = 'Adam'
     dropout = 0.05
@@ -187,6 +187,9 @@ if __name__ == "__main__":
             torch.save(rnn3, 'model/rawSignal_model_lstm.pkl')
 
     '''
+###########################   choose best modele
+
+
     type = 'mfcc'
     features_mfcc = np.loadtxt("feature/train_features_mfcc.txt")
     labels_mfcc = np.loadtxt("feature/train_label_mfcc.txt")
@@ -194,18 +197,17 @@ if __name__ == "__main__":
     opt = ['Adam','SGD']
     drop_out = [0.05,0.1,0.2]
 
-    best_acc = 0
+    best_loss = np.inf
 
     for lr in learning_rate:
         for op in opt:
             for do in drop_out:
-                accuracy,rnn = train_rnn(features_mfcc,labels_mfcc,lr,op,do,type)
-                print('learning_rate:' ,lr,'| optimizer: ',op,'| dropout: ',do,'| accuracy: ',accuracy)
+                loss,rnn = train_rnn(features_mfcc,labels_mfcc,lr,op,do,type)
+                print('learning_rate:' ,lr,'| optimizer: ',op,'| dropout: ',do,'| loss: ',loss)
 
-                if accuracy < best_acc:
-                    print('Accuracy was not improved')
+                if loss > best_loss:
+                    print('loss was not improved')
                 else:
                     print('Saving model...')
-                    best_acc = accuracy
+                    best_loss = loss
                     torch.save(rnn, 'model/best_mfcc_model_lstm.pkl')
-    '''

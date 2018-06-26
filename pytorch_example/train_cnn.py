@@ -1,31 +1,34 @@
 
-import time
-
 import torch
 from torch import nn
 from torch.autograd import Variable
 from torch.nn import init
 import torch.utils.data as Data
 import torch.nn.functional as F
-from sklearn import preprocessing,metrics
-import sys
-import os
-import glob
-import sh
-import numpy as np
-import librosa
-import matplotlib.pyplot as plt
-import pylab
-import librosa.display
-
 
 import torchvision
 import torchvision.transforms as transforms
 
+from sklearn import preprocessing,metrics
+import sys
+import os
+import glob
+import time
+
+import numpy as np
+
+import librosa
+import librosa.display
+
+import matplotlib.pyplot as plt
+import pylab
+
+import sh
 
 
 
-batch_size = 1
+
+batch_size = 5
 num_epochs = 1
 num_classes = 3
 num_kernel_size = 2
@@ -63,8 +66,7 @@ class CNN(nn.Module):
 
 
 
-
-def train_mfcc(train_features,train_labels,test_features,test_labels,cnn,loss_func,optimizer):
+def train_mfcc(train_features,train_labels,cnn,loss_func,optimizer):
     print('Loading data...')
     start_time = time.time()
     x, y = torch.from_numpy(train_features).float(), torch.from_numpy(train_labels).long()
@@ -73,44 +75,52 @@ def train_mfcc(train_features,train_labels,test_features,test_labels,cnn,loss_fu
         train_dataset, batch_size=batch_size, shuffle=True,
     num_workers=20)
 
-    test_x, test_y = torch.from_numpy(test_features).float(), torch.from_numpy(test_labels).long()
-    test_x = Variable(torch.unsqueeze(test_x, dim=1), requires_grad=False)
-
-    test_loss = np.empty(0)
-    acc = []
     for epoch in range(num_epochs):
+        cnn.train()
+        global_epoch_loss = 0
         for step, (x, y) in enumerate(train_loader):   # gives batch data, normalize x when iterate train_loader
             # print x.shape
             # print x
             # print y.shape
             b_x = Variable(torch.unsqueeze(x, dim=1))   # batch x
             b_y = Variable(y)   # batch y
-            print b_x.shape
-            print b_y.shape
+            # print b_x.shape
+            # print b_y.shape
             output = cnn(b_x)[0]               # cnn output
             loss = loss_func(output, b_y)   # cross entropy loss
             optimizer.zero_grad()           # clear gradients for this training step
             loss.backward()                 # backpropagation, compute gradients
             optimizer.step()                # apply gradients
+            global_epoch_loss += loss.data[0]
             if step % 50 == 0:
-                test_output, last_layer = cnn(test_x)
-                pred_y = torch.max(test_output, 1)[1].data.squeeze()
-                # print test_y.size(0)
-                # print float(sum(pred_y == test_y))
-                accuracy = sum(pred_y.numpy() == test_y.numpy()) / float(test_y.size(0))
+                print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                    epoch, step * len(b_x), len(train_loader.dataset), 100.* step / len(train_loader), loss.data[0]))
 
-                # print('Epoch: ', epoch, '| train loss: %.4f' % loss.data[0], '| test accuracy: %.4f' % accuracy)
+    return global_epoch_loss / len(train_loader.dataset)
 
-                # print type(loss.data[0].numpy())
-                test_loss = np.append(test_loss, loss.data[0].numpy())
-                acc.append(accuracy)
-    pre_output,_ = cnn(test_x)
-    pred_y = torch.max(pre_output, 1)[1].data.numpy().squeeze()
+
+
+
+def test_mfcc(test_features,test_labels,cnn):
+
+    test_x, test_y = torch.from_numpy(test_features).float(), torch.from_numpy(test_labels).long()
+    test_x = Variable(torch.unsqueeze(test_x, dim=1), requires_grad=False)
+
+    test_output, last_layer = cnn(test_x)
+    # print test_output
+    pred_y = torch.max(test_output, 1)[1].data.squeeze()
+    # print test_y.size(0)
+    # print float(sum(pred_y == test_y))
+    accuracy = sum(pred_y.numpy() == test_y.numpy()) / float(test_y.size(0))
+
+    # print('Epoch: ', epoch, '| train loss: %.4f' % loss.data[0], '| test accuracy: %.4f' % accuracy)
+
+    # print type(loss.data[0].numpy())
+    # pre_output,_ = cnn(test_x)
+    # pred_y = torch.max(pre_output, 1)[1].data.numpy().squeeze()
     print (metrics.classification_report(test_y.numpy(), pred_y))
 
-    return min(test_loss),max(acc)
-
-
+    return accuracy
 
 def get_mfccs(redimension_dir,redimension_subs,file_ext,totalNumOfFeatures,max_len):
 
@@ -118,7 +128,7 @@ def get_mfccs(redimension_dir,redimension_subs,file_ext,totalNumOfFeatures,max_l
 
     labels = np.empty(0)
     for label, sub_dir in enumerate(redimension_subs):
-        print("label: %s" % (label))
+        # print("label: %s" % (label))
         #print("sub_dir: %s" % (sub_dir))
         for f in glob.glob(os.path.join(redimension_dir, sub_dir, file_ext)):
             print("extract file: %s" % (f))
@@ -127,8 +137,8 @@ def get_mfccs(redimension_dir,redimension_subs,file_ext,totalNumOfFeatures,max_l
             try:
                 X, sample_rate = librosa.load(f)
                 mfccs = librosa.feature.mfcc(y=X, sr=sample_rate, n_mfcc=totalNumOfFeatures)
-                print mfccs.shape
-                print ("mfcc is",mfccs)
+                # print mfccs.shape
+                # print ("mfcc is",mfccs)
                 if mfccs.shape[1] < max_len:
                     pad = np.zeros((mfccs.shape[0], max_len - mfccs.shape[1]))
                     mfccs = np.hstack((mfccs, pad))
@@ -148,16 +158,16 @@ def get_mfccs(redimension_dir,redimension_subs,file_ext,totalNumOfFeatures,max_l
 
             ext_features = np.hstack([mfccs])
             #print len(ext_features)
-            print ext_features.shape
+            # print ext_features.shape
             ext_features = np.resize(ext_features, (1, ext_features.shape[0],ext_features.shape[1]))
             features = np.vstack([features,ext_features])
             labels = np.append(labels, label)
-        print (features.shape)
+        # print (features.shape)
         # print (features)
         #print labels
     return np.array(features), np.array(labels, dtype = np.int)
 
-def train_rawSignal(image_train_path,image_test_path,cnn,loss_func,optimizer,totalNumOfFeatures,max_len):
+def train_rawSignal(image_train_path,cnn,loss_func,optimizer,totalNumOfFeatures,max_len):
     transform = transforms.Compose(
         [transforms.Scale([totalNumOfFeatures,max_len]),
          transforms.ToTensor(),
@@ -166,41 +176,67 @@ def train_rawSignal(image_train_path,image_test_path,cnn,loss_func,optimizer,tot
     train_data = torchvision.datasets.ImageFolder(root=image_train_path, transform=transform )
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size,shuffle=True, num_workers=2)
 
+    for epoch in range(num_epochs):
+        cnn.train()
+        global_epoch_loss = 0
+        for i, data in enumerate(train_loader, 0):
+            # get the inputs
+            inputs, labels = data
+            # print inputs.shape
+            # print labels
+            inputs, labels = Variable(inputs), Variable(labels)
+            output = cnn(inputs)[0]               # cnn output
+            # print output
+            loss = loss_func(output, labels)   # cross entropy loss
+            optimizer.zero_grad()           # clear gradients for this training step
+            loss.backward()                 # backpropagation, compute gradients
+            optimizer.step()                # apply gradients
+            global_epoch_loss += loss.data[0]
+            if i % 50 == 0:
+                print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                    epoch, i * len(inputs), len(train_loader.dataset), 100.* i / len(train_loader), loss.data[0]))
+    return global_epoch_loss / len(train_loader.dataset)
+
+
+def test_rawSignal(image_test_path,cnn,totalNumOfFeatures,max_len):
+    transform = transforms.Compose(
+        [transforms.Scale([totalNumOfFeatures,max_len]),
+         transforms.ToTensor(),
+         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+
     test_data = torchvision.datasets.ImageFolder(root=image_test_path, transform=transform )
     test_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size,shuffle=True, num_workers=2)
-    print test_data
-    dataiter = iter(test_loader)
-    images, labels = dataiter.next()
-    print images,labels
-    #
-    # for epoch in range(num_epochs):
-    #
-    #     for i, data in enumerate(train_loader, 0):
-    #         # get the inputs
-    #         inputs, labels = data
-    #         # print inputs.shape
-    #         # print labels
-    #         inputs, labels = Variable(inputs), Variable(labels)
-    #         output = cnn(inputs)[0]               # cnn output
-    #         # print output
-    #         loss = loss_func(output, labels)   # cross entropy loss
-    #         optimizer.zero_grad()           # clear gradients for this training step
-    #         loss.backward()                 # backpropagation, compute gradients
-    #         optimizer.step()                # apply gradients
+    # print test_data
+    # dataiter = iter(test_loader)
+    # images, labels = dataiter.next()
+    # print images.shape,labels.shape
+    cnn.eval()
+    correct = 0
+    pred_y = np.array([])
+    test_y = np.array([])
+    for i, data in enumerate(test_loader, 0):
+        inputs, labels = data
+        inputs, labels = Variable(inputs), Variable(labels)
+        # print inputs.reshape
+        # print labels.shape
+        output = cnn(inputs)
+        # print type(output)
+        # print output[0]
+        pred = output[0].max(1, keepdim=True)[1]
+        pred_y = np.append(pred_y,pred)
+        test_y = np.append(test_y,labels)
+        # print pred_y
+        # pred = torch.max(output[0], 1)[1].data.squeeze()
+        # print pred
+        # print labels.data
+        # print pred.eq(labels.data.view_as(pred)).sum()
+        correct += pred.eq(labels.data.view_as(pred)).sum()
+    # print correct.numpy()
+    # print len(test_loader.dataset)
+    # print float(correct) /len(test_loader.dataset)
+    print (metrics.classification_report(test_y, pred_y))
+    return float(correct) /len(test_loader.dataset)
 
-
-            # if i % 50 == 0:
-            #     test_output, last_layer = cnn(test_x)
-            #     pred_y = torch.max(test_output, 1)[1].data.squeeze()
-            #     # print test_y.size(0)
-            #     # print float(sum(pred_y == test_y))
-            #     accuracy = sum(pred_y.numpy() == test_y.numpy()) / float(test_y.size(0))
-            #
-            #     print('Epoch: ', epoch, '| train loss: %.4f' % loss.data[0], '| test accuracy: %.4f' % accuracy)
-            #
-            #     # print type(loss.data[0].numpy())
-            #     test_loss = np.append(test_loss, loss.data[0].numpy())
-            #     acc.append(accuracy)
 
 
 def rawSignal_to_image(redimension_dir,redimension_subs,file_ext,image_dir):
@@ -211,7 +247,7 @@ def rawSignal_to_image(redimension_dir,redimension_subs,file_ext,image_dir):
             # print("extract file: %s" % (f))
             waveFile_name = (os.path.splitext(f)[0]).split(os.sep)[3]
             spice = (os.path.splitext(f)[0]).split(os.sep)[2]
-            print waveFile_name
+            # print waveFile_name
             sig, fs = librosa.load(f)
 
 
@@ -235,7 +271,7 @@ def clean(file_dir):
 
 
 if __name__ == "__main__":
-    cmd = "rm -rf model/model_cnn.pkl"
+    cmd = "rm -rf model/mfcc_model_cnn.pkl"
     sh.run(cmd)
 
     train_path = "redimension/train"
@@ -253,15 +289,16 @@ if __name__ == "__main__":
     # clean(image_train_path)
     # clean(image_test_path)
 
-    # train_features,train_labels = get_mfccs(train_path,subs,file_ext,totalNumOfFeatures,max_len)
-    # test_features,test_labels = get_mfccs(test_path,subs,file_ext,totalNumOfFeatures,max_len)
+    train_features,train_labels = get_mfccs(train_path,subs,file_ext,totalNumOfFeatures,max_len)
+    test_features,test_labels = get_mfccs(test_path,subs,file_ext,totalNumOfFeatures,max_len)
 
     # rawSignal_to_image(train_path,subs,file_ext,image_train_path)
     # rawSignal_to_image(test_path,subs,file_ext,image_test_path)
 
-
-    # types = ['mfcc','rawSignal']
-    types = ['rawSignal']
+    '''
+    types = ['mfcc','rawSignal']
+    # types = ['rawSignal']
+    # types = ['mfcc']
     loss_func = nn.CrossEntropyLoss()
     lr = 0.01
 
@@ -271,25 +308,30 @@ if __name__ == "__main__":
             cnn = CNN(0.1,totalNumOfFeatures,max_len,in_channels)
             print cnn
             optimizer = torch.optim.Adam(cnn.parameters(), lr=lr)
-            train_mfcc(train_features,train_labels,test_features,test_labels, cnn,loss_func,optimizer)
+            train_loss = train_mfcc(train_features,train_labels,cnn,loss_func,optimizer)
+            accuracy = test_mfcc(test_features,test_labels,cnn)
 
         elif type == 'rawSignal':
             in_channels = 3
             cnn = CNN(0.1,totalNumOfFeatures,max_len,in_channels)
             print cnn
             optimizer = torch.optim.Adam(cnn.parameters(), lr=lr)
-            train_rawSignal(image_train_path,image_test_path,cnn,loss_func,optimizer,totalNumOfFeatures,max_len)
-
+            train_loss = train_rawSignal(image_train_path,cnn,loss_func,optimizer,totalNumOfFeatures,max_len)
+            accuracy = test_rawSignal(image_test_path,cnn,totalNumOfFeatures,max_len)
 
 
     '''
+
+
+    ### use mfcc
     best_loss = np.inf
     learning_rate = [0.01,0.1,0.5]
     opt = ['Adam','SGD']
     drop_out = [0.05,0.1,0.2]
+    in_channels = 1
 
     for do in drop_out:
-        cnn = CNN(do,totalNumOfFeatures,max_len)
+        cnn = CNN(do,totalNumOfFeatures,max_len,in_channels)
         loss_func = nn.CrossEntropyLoss()
         for lr in learning_rate:
             for op in opt:
@@ -298,13 +340,13 @@ if __name__ == "__main__":
                 else:
                     optimizer = torch.optim.SGD(cnn.parameters(), lr=lr)
 
-                test_loss,acc = train(train_features,train_labels,test_features,test_labels, cnn,loss_func,optimizer)
-                print('learning_rate:' ,lr,'| optimizer: ',op,'| dropout: ',do,'| test_loss: ',test_loss,'| accuracy: ',acc)
+                loss = train_mfcc(train_features,train_labels,cnn,loss_func,optimizer)
+                accuracy = test_mfcc(test_features,test_labels,cnn)
+                print('learning_rate:' ,lr,'| optimizer: ',op,'| dropout: ',do,'| test_loss: ',float(loss.numpy()),'| accuracy: ',accuracy)
 
-                if test_loss > best_loss:
+                if loss > best_loss:
                     print('Loss was not improved')
                 else:
                     print('Saving model...')
-                    best_loss = test_loss
-                    torch.save(cnn, 'model/model_cnn.pkl')
-    '''
+                    best_loss = loss
+                    torch.save(cnn, 'model/mfcc_model_cnn.pkl')
