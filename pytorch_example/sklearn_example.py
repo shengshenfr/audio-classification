@@ -172,20 +172,20 @@ if __name__ == '__main__':
     print ("features are ",features)
     print ("labels are ",labels)
     features_train, features_test, labels_train, labels_test = train_test_split(features, labels, test_size = 0.2, random_state=0)
-    '''
+
     svm_best_parameter = train_evaluate_cross_validation_svm(features,labels)
     filename = 'model/model_svm.sav'
     train_svm(features_train,labels_train, svm_best_parameter,filename)
     model_prediction = 'model/model_svm.sav'
 
-    '''
 
-    '''
+
+
     knn_best_parameter = train_evaluate_cross_validation_knn(features,labels)
     filename = 'model/model_knn.sav'
     train_knn(features_train,labels_train, knn_best_parameter,filename)
     model_prediction = 'model/model_knn.sav'
-    '''
+    
     startprob, transmat, means, cov = get_hmm_parameter(features_train,labels_train)
     filename = 'model/model_hmm.sav'
     train_hmm(startprob, transmat, means, cov,filename)

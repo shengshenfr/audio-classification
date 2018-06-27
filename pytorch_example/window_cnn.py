@@ -11,7 +11,8 @@ import pydub
 from pydub import AudioSegment
 import librosa
 import torch
-from train_cnn import *
+from torch.autograd import Variable
+from train_cnn import CNN
 
 def norm_signal(signal):
 
@@ -115,10 +116,10 @@ def write_csv(wavFile,window_size,step_size,result):
     str_start = '20'+date1[:2]+"/"+date1[-4:-2]+"/"+date1[-2:]+" "+date2[:2]+":"+date2[-4:-2]+":"+date2[-2:]
     start = pd.to_datetime(str_start,format='%Y/%m/%d %H:%M:%S')
     start_time = pd.date_range(start,periods = len_result,freq = '7s')
-    print start_time[0]
-    print window_size
+    # print start_time[0]
+    # print window_size
     first_end_time = start_time[0]+1
-    print first_end_time
+    # print first_end_time
     end_time = pd.date_range(first_end_time,periods = len_result,freq = '1min')
 
     csvFile = open("window/cnn_test.csv","w")
@@ -145,7 +146,7 @@ def predict(features,model):
     x = Variable(torch.unsqueeze(x, dim=1), requires_grad=False)
     test_output, _ = net2(x)
     pred_y = torch.max(test_output, 1)[1].data.numpy().squeeze()
-    print(pred_y, 'prediction number')
+    # print(pred_y, 'prediction number')
     cmd = "rm -rf window/cnn_result.txt"
     sh.run(cmd)
     np.savetxt("window/cnn_result.txt",pred_y)
@@ -155,14 +156,14 @@ if __name__ == '__main__':
     wavFile = 'wav/prediction/WAT_OC_01_150520_000000.df100.x.wav'
     window_size = 7
     step_size  = 60
-    '''
+
     x,Fs = read_audio(wavFile)
     signal= norm_signal(x)
 
     features = feature_extraction(signal,Fs,window_size,step_size)
-    model_path = 'model/model_cnn.pkl'
+    model_path = 'model/best_mfcc_model_cnn.pkl'
     predict(features,model_path)
-    '''
+
     result = np.loadtxt("window/cnn_result.txt")
     cmd = "rm -rf window/cnn_test.csv"
     sh.run(cmd)

@@ -72,7 +72,7 @@ def extration_mfcc(wavFile):
     print("data is ", X)
 
     # sftf
-    stft = np.abs(librosa.stft(X))
+    # stft = np.abs(librosa.stft(X))
 
     # mfcc
     mfccs = np.mean(librosa.feature.mfcc(y=X, sr=sample_rate, n_mfcc=13).T,axis=0)
@@ -107,21 +107,19 @@ def extration_rawSignal(wavFile,max_len,sample_rate):
     return X
 
 
-def parse_audio_files_rawSignal(redimension_dir,sub_read,file_ext):
-    max_len=200
-    sample_rate=100
+def parse_audio_files_rawSignal(redimension_dir,sub_read,file_ext,max_len,sample_rate):
     features, labels = np.empty((0,max_len)), np.empty(0)
     for label, sub_dir in enumerate(sub_read):
-        print("label: %s" % (label))
+        # print("label: %s" % (label))
         #print("sub_dir: %s" % (sub_dir))
         for f in glob.glob(os.path.join(redimension_dir, sub_dir, file_ext)):
-            print("extract file: %s" % (f))
+            # print("extract file: %s" % (f))
             waveFile_name = (os.path.splitext(f)[0]).split(os.sep)[2]
             try:
                 audio = extration_rawSignal(f,max_len,sample_rate)
 
             except Exception as e:
-                print("[Error] extract feature error. %s" % (e))
+                # print("[Error] extract feature error. %s" % (e))
                 continue
 
             ext_features = np.hstack([audio])
@@ -243,7 +241,9 @@ if __name__ == "__main__":
     np.savetxt("feature/train_label_wavelet.txt",labels_wavelet)
 
     ###########  raw signal
-    features_rawSignal,labels_rawSignal = parse_audio_files_rawSignal(read_dir,sub_read,file_ext)
+    max_len=200
+    sample_rate=100
+    features_rawSignal,labels_rawSignal = parse_audio_files_rawSignal(read_dir,sub_read,file_ext,max_len,sample_rate)
     features_rawSignal = normaliser_features(features_rawSignal)
     labels_rawSignal = encode_label(labels_rawSignal)
 

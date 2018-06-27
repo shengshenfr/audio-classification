@@ -181,12 +181,12 @@ if __name__ == '__main__':
     # Fs = np.loadtxt(Fs_txt)
     features = feature_extraction(signal,Fs,window_size,step_size)
     features_normalisation = normaliser_features(features)
-    cmd = "rm -rf feature/window.txt"
-    sh.run(cmd)
+    # cmd = "rm -rf feature/window.txt"
+    # sh.run(cmd)
     np.savetxt("feature/window.txt",features_normalisation)
 
     features_normalisation = np.loadtxt("feature/window.txt")
-    model_path = 'model/model_lstm.pkl'
+    model_path = 'model/mfcc_model_lstm.pkl'
     # model_path = 'model/rnn_wavelet.pkl'
     predict(features_normalisation,model_path)
     cmd = "rm -rf window/lstm_test.csv"

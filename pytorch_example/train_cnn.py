@@ -349,4 +349,4 @@ if __name__ == "__main__":
                 else:
                     print('Saving model...')
                     best_loss = loss
-                    torch.save(cnn, 'model/mfcc_model_cnn.pkl')
+                    torch.save(cnn, 'model/best_mfcc_model_cnn.pkl')
