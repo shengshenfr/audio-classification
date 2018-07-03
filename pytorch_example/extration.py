@@ -9,7 +9,7 @@ import util
 import librosa
 import math
 from sklearn import preprocessing
-
+import torch
 
 def extration_wavelet_packet(wavFile):
 
@@ -193,23 +193,75 @@ def parse_audio_files_mfcc(read_dir,sub_read,file_ext):
     return np.array(features), np.array(labels, dtype = np.int)
 
 
-def normaliser_features(features):
+def get_cnn_mfccs(redimension_dir,redimension_subs,file_ext,totalNumOfFeatures,max_len):
 
-    features_normalisation = preprocessing.scale(features)
+    features = np.empty((0,totalNumOfFeatures,max_len))
 
-    return features_normalisation
+    labels = np.empty(0)
+    for label, sub_dir in enumerate(redimension_subs):
+        # print("label: %s" % (label))
+        #print("sub_dir: %s" % (sub_dir))
+        for f in glob.glob(os.path.join(redimension_dir, sub_dir, file_ext)):
+            print("extract file: %s" % (f))
+            waveFile_name = (os.path.splitext(f)[0]).split(os.sep)[2]
+
+            try:
+                X, sample_rate = librosa.load(f)
+                mfccs = librosa.feature.mfcc(y=X, sr=sample_rate, n_mfcc=totalNumOfFeatures)
+                # print mfccs.shape
+                # print ("mfcc is",mfccs)
+                if mfccs.shape[1] < max_len:
+                    pad = np.zeros((mfccs.shape[0], max_len - mfccs.shape[1]))
+                    mfccs = np.hstack((mfccs, pad))
+                elif mfccs.shape[1] > max_len:
+                    mfccs = mfccs[:,:max_len ]
+
+                mfccs = torch.FloatTensor(mfccs)
+                mean = mfccs.mean()
+                std = mfccs.std()
+                if std != 0:
+                    mfccs.add_(-mean)
+                    mfccs.div_(std)
+                #print ("mfcc is",np.array(mfccs))
+            except Exception as e:
+                print("[Error] extract feature error. %s" % (e))
+                continue
+
+            ext_features = np.hstack([mfccs])
+            #print len(ext_features)
+            # print ext_features.shape
+            ext_features = np.resize(ext_features, (1, ext_features.shape[0],ext_features.shape[1]))
+            features = np.vstack([features,ext_features])
+            labels = np.append(labels, label)
+        # print (features.shape)
+        # print (features)
+        #print labels
+    return np.array(features), np.array(labels, dtype = np.int)
+
+
+def rawSignal_to_image(redimension_dir,redimension_subs,file_ext,image_dir):
+    for label, sub_dir in enumerate(redimension_subs):
+        # print("label: %s" % (label))
+        # print("sub_dir: %s" % (sub_dir))
+        for f in glob.glob(os.path.join(redimension_dir, sub_dir, file_ext)):
+            # print("extract file: %s" % (f))
+            waveFile_name = (os.path.splitext(f)[0]).split(os.sep)[3]
+            spice = (os.path.splitext(f)[0]).split(os.sep)[2]
+            # print waveFile_name
+            sig, fs = librosa.load(f)
+
+
+            pylab.axis('off') # no axis
+            pylab.axes([0., 0., 1., 1.], frameon=False, xticks=[], yticks=[]) # Remove the white edge
+            S = librosa.feature.melspectrogram(y=sig, sr=fs)
+            librosa.display.specshow(librosa.power_to_db(S, ref=np.max))
 
 
 
-def encode_label(labels):
-    n_labels = len(labels)
-    n_unique_labels = len(np.unique(labels))
-    labels_encode = np.zeros((n_labels,1))
-    #print labels_encode
-    for i in range(n_labels):
-        labels_encode[i]= labels[i]
-
-    return labels_encode
+            # make pictures name
+            save_path = image_dir+ "/" + spice + "/" + waveFile_name + '.png'
+            pylab.savefig(save_path, bbox_inches=None, pad_inches=0)
+            pylab.close()
 
 
 
@@ -219,8 +271,8 @@ if __name__ == "__main__":
     sub_read = ['Bm','Eg']
     file_ext='*.wav'
 
-    cmd = "rm -rf feature/*"
-    sh.run(cmd)
+    # cmd = "rm -rf feature/*"
+    # sh.run(cmd)
     ############ mfcc
     features_mfcc,labels_mfcc = parse_audio_files_mfcc(read_dir,sub_read,file_ext)
     features_mfcc = normaliser_features(features_mfcc)

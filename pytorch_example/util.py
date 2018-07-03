@@ -8,77 +8,72 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import specgram
 import librosa.display
+from scipy import signal
+
+from sklearn import preprocessing
 
 
-AUDIO_EXT = "wav"
-AUDIO_NUM = 3
-
-
-
+def clean(file_dir):
+    for i, f in enumerate(glob.glob(file_dir + os.sep +'*')):
+        # print f
+        cmd = "rm -rf " + f  + "/*.wav"
+        sh.run(cmd)
 
 def splitext(wav_name):
     name = wav_name.split(".")
 
     return name
 
+def normaliser_features(features):
 
+    features_normalisation = preprocessing.scale(features)
 
-def load_sound_files(file_paths):
-    raw_sounds = []
-    for fp in file_paths:
-        X, sr = librosa.load(fp)
-        raw_sounds.append(X)
-    return raw_sounds
-
-
-def get_files(output_dir,file_directory_name):
-    file_directory_path = os.path.join(output_dir, file_directory_name)
-    files = os.listdir(file_directory_path)
-    waves = []
-    names = []
-    for file in files:
-
-        if AUDIO_EXT in file:
-            names.append(file)
-            waves.append(os.path.join(os.path.join(output_dir, file_directory_name, file)))
-            if len(waves) >= AUDIO_NUM:
-                break
-    # print waves
-    print names
-    return waves,names
-
-def plot_specgram(sound_names, raw_sounds):
-    i = 1
-    fig = plt.figure(figsize=(25, 60), dpi=100)
-    for n, f in zip(sound_names, raw_sounds):
-        plt.subplot(3, 1, i)
-        specgram(np.array(f), Fs=22050)
-        plt.title(n.title())
-        i += 1
-    plt.suptitle('Figure 1: Spectrogram', x=0.5, y=0.985, fontsize=18)
-    #plt.show()
-    plt.savefig(os.path.join("result_redimension", 'f1_spec.jpg'))
+    return features_normalisation
 
 
 
-def plot_waves(sound_names, raw_sounds):
-    i = 1
-    fig = plt.figure(figsize=(25, 60), dpi=100)
-    for n, f in zip(sound_names, raw_sounds):
-        plt.subplot(3, 1, i)
-        librosa.display.waveplot(np.array(f), sr=22050)
-        plt.title(n.title())
-        i += 1
-    plt.suptitle('Figure 1: Waveplot', x=0.5, y=0.985, fontsize=18)
-    #plt.show()
-    plt.savefig(os.path.join("result_redimension", 'f1_waveplot.jpg'))
+def encode_label(labels):
+    n_labels = len(labels)
+    n_unique_labels = len(np.unique(labels))
+    labels_encode = np.zeros((n_labels,1))
+    #print labels_encode
+    for i in range(n_labels):
+        labels_encode[i]= labels[i]
 
+    return labels_encode
+
+
+
+def plot_spec(audio_path):
+    y, sr = librosa.load(audio_path, duration=10)
+    # S = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=128,fmax=8000)
+    D = librosa.amplitude_to_db(librosa.stft(y), ref=np.max)
+    plt.figure(figsize=(10, 4))
+    # librosa.display.specshow(librosa.power_to_db(S,ref=np.max),y_axis='mel', fmax=8000,x_axis='time')
+    librosa.display.specshow(D, y_axis='log',x_axis='time')
+    plt.colorbar(format='%+2.0f dB')
+    plt.title('Log-frequency power spectrogram')
+    # plt.tight_layout()
+    plt.show()
+
+def plot_wave(audio_path):
+    y, sr = librosa.load(audio_path)
+    y_harm, y_perc = librosa.effects.hpss(y)
+    plt.figure(figsize=(10, 4))
+    librosa.display.waveplot(y_harm, sr=sr, alpha=0.25)
+    librosa.display.waveplot(y_perc, sr=sr, color='r', alpha=0.5)
+    plt.title('Harmonic + Percussive')
+    plt.show()
 
 if __name__ == '__main__':
-    output_dir = "result_redimension"
-    file_directory_name = "bm_redimension"
-    waves,names = get_files(output_dir,file_directory_name)
-
-    raw_waves = raw_sounds = load_sound_files(waves)
-    # plot_specgram(names, raw_waves)
-    plot_waves(names, raw_waves)
+    # output_dir = "result_redimension"
+    # file_directory_name = "bm_redimension"
+    # waves,names = get_files(output_dir,file_directory_name)
+    #
+    # raw_waves = raw_sounds = load_sound_files(waves)
+    # # plot_specgram(names, raw_waves)
+    # plot_waves(names, raw_waves)
+    audio_path = 'wav/train/WAT_HZ_01_160217_221115.df100.x.wav'
+    # audio_path = 'combine.wav'
+    plot_spec(audio_path)
+    # plot_wave(audio_path)

@@ -5,6 +5,7 @@ References :
     https://github.com/ibab/tensorflow-wavenet
     https://qiita.com/MasaEguchi/items/cd5f7e9735a120f27e2a
     https://github.com/musyoku/wavenet/issues/4
+    https://github.com/golbin/WaveNet/blob/master/wavenet/networks.py
 """
 
 

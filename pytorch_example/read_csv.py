@@ -6,6 +6,7 @@ import glob
 import pandas as pd
 import sh
 from datetime import datetime, timedelta, tzinfo
+from util import clean
 
 class FixedOffset(tzinfo):
     """offset_str: Fixed offset in str: e.g. '-0400'"""
@@ -35,7 +36,7 @@ def read(csv_train_dir):
     duration = []
     segQuality = []
     for j,sample_file in enumerate(glob.glob(csv_train_dir + os.sep +'*.csv')):
-        print sample_file
+        # print sample_file
         with open(sample_file, 'rb') as csvfile:
             reader = csv.reader(csvfile, delimiter=',', quotechar='|')
             for j, row in enumerate(reader):
@@ -57,16 +58,18 @@ def read(csv_train_dir):
                 segQuality.append(row[5])
                 #print dur
         #print segProjet,segSite,segStart,duration,segLabel,segQuality
-
+    # print segProjet
     return segProjet,segSite,segStart,duration,segLabel,segQuality
 
 
 def date_type(wav_dir,segProjet,segSite,segStart,duration,segLabel,segQuality,read_dir):
-    print max(duration)
-    print min(duration)
+    # print max(duration)
+    # print min(duration
+    print wav_dir
+    print read_dir
     for i, f in enumerate(glob.glob(wav_dir + os.sep +'*.wav')):               # for each WAV file
         wavFile = f
-        print os.path.splitext(wavFile)[0]
+        # print os.path.splitext(wavFile)[0]
         waveFile_name = (os.path.splitext(wavFile)[0]).split(os.sep)[2]
         print waveFile_name
         date1 = waveFile_name.split("_")[3]
@@ -78,7 +81,7 @@ def date_type(wav_dir,segProjet,segSite,segStart,duration,segLabel,segQuality,re
             #print date1[i], '(%d)' %i
             temp1.append(date1[i])
         date1 = "20" + temp1[0] + temp1[1] +"-"+ temp1[2] + temp1[3] +"-"+ temp1[4]+temp1[5]
-        print ("date1 is ",date1)
+        # print ("date1 is ",date1)
 
         for j in range(len(date2)):
             #print date2[j], '(%d)' %j
@@ -91,7 +94,7 @@ def date_type(wav_dir,segProjet,segSite,segStart,duration,segLabel,segQuality,re
 
         start_date = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
 
-        print ("start_date is ",start_date)
+        # print ("start_date is ",start_date)
         # cut_time_start = []
         # cut_time_duration = []
         # cut_time_label = []
@@ -123,11 +126,14 @@ def cut(wavFile,segProjet,segSite,segStart,duration,segLabel,segQuality, read_di
     print("the duration of wavfile is ", duration_in_wavFile)
     # print type(duration_in_wavFile)
     # print type(duration)
-
+    # print wavFile
     w = os.path.splitext(wavFile)[0]
-    projet_wav = w.split("_")[0]
+    # print w
+    projet_wav = w.split("_")[0].split("/")[2]
+    # print projet_wav
     site_wav = w.split("_")[1]
-
+    # print site_wav
+    # print projet_wav
     good_projet = []
     good_site = []
     good_species = []
@@ -135,6 +141,8 @@ def cut(wavFile,segProjet,segSite,segStart,duration,segLabel,segQuality, read_di
     good_cut_point = []
     good_duration = []
     good_quality = []
+    # print np.unique(segProjet)
+    # print("begin to cut")
     for i in range(0, len(segStart)):
         if i < len(segStart) - 1:
             cut_point = (segStart[i] - start_date).total_seconds()
@@ -153,13 +161,22 @@ def cut(wavFile,segProjet,segSite,segStart,duration,segLabel,segQuality, read_di
                 good_cut_point.append(cut_point)
                 good_duration.append(duration[i])
                 good_quality.append(segQuality[i])
-    print good_cut_point,str(good_duration)
-    print good_start
+    # print good_cut_point,str(good_duration)
+    # print good_start
+    # print len(good_start)
+    # print len(good_cut_point)
+    # print len(good_duration)
     encode_good_speices = np.unique(good_species)
+    # print encode_good_speices
     for j in range(0,len(good_cut_point)):
         str_name = str(good_projet[j]) +"_"+ str(good_site[j]) +"_"+ str(good_start[j]) +"."+ str(good_species[j]) +"."+ str(good_quality[j])
         for s in encode_good_speices:
-            if str(good_species[j]) == s and str(good_projet[j]==projet_wav) and str(good_site[j])==site_wav:
+            # print good_species[j]
+            # print str(good_projet[j])==projet_wav
+            # print str(good_site[j])==site_wav
+
+            if str(good_species[j]) == s and str(good_projet[j])==projet_wav and str(good_site[j])==site_wav:
+                # print("cut")
                 cmd = "ffmpeg -ss " + str(good_cut_point[j]) + " -t " + str(good_duration[j])+ " -i " + wavFile + " " + read_dir + "/" + s + "/" + str_name + ".wav"
                 sh.run(cmd)
         # if str(good_species[j]) == "Eg":
@@ -185,18 +202,17 @@ def combine(result_dir,combine_dir):
     sh.run(cmd)
 '''
 
-def clean(file_dir):
-    for i, f in enumerate(glob.glob(file_dir + os.sep +'*')):
-        # print f
-        cmd = "rm -rf " + f  + "/*.wav"
-        sh.run(cmd)
+
 
 if __name__ == '__main__':
 
-    csv_train_dir = "sample_csv/train"
 
-    wav_dir = 'wav/train'
+    csv_train_dir = "data_csv/train"
+
+    wav_dir = 'data_wav/train'
+
     read_dir = "read"
+
     # result_bm_dir = "read/read_bm"
     # result_eg_dir = "read/read_eg"
     # combine_dir = "combine_wavFile"

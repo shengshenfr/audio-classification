@@ -90,7 +90,7 @@ def read_audio(read_dir,sub_dirs,T_total,padding_dir,labels):
 
 
 
-def cut_padding_audio(padding_dir,sub_dirs,T_total,redimension_dir,labels):
+def cut_padding_audio(padding_dir,sub_dirs,T_total,labels,redimension_train_dir,redimension_test_dir):
     for k, sub_padding in enumerate(sub_dirs):
         #print("label: %s" % (label))
         print("sub_padding: %s" % (sub_padding))
@@ -119,9 +119,9 @@ def cut_padding_audio(padding_dir,sub_dirs,T_total,redimension_dir,labels):
                         if quality == l:
                             number = np.random.randint(0,9)
                             if number>2:
-                                path_name = redimension_dir+"/"+"train" +"/"+ l +"/"
+                                path_name = redimension_train_dir +"/"+ l +"/"
                             else:
-                                path_name = redimension_dir+"/"+"test" +"/"+ l +"/"
+                                path_name = redimension_test_dir +"/"+ l +"/"
                         # if quality == "Eg":
                         #     path_name = result_redimension_dir +"/"+ eg_redimension_dir +"/"
 
@@ -132,20 +132,16 @@ def cut_padding_audio(padding_dir,sub_dirs,T_total,redimension_dir,labels):
                     if quality == l:
                         number = np.random.randint(0,9)
                         if number>2:
-                            path_name = redimension_dir+"/"+"train" +"/"+ l +"/"
+                            path_name = redimension_train_dir +"/"+ l +"/"
                         else:
-                            path_name = redimension_dir+"/"+"test" +"/"+ l +"/"
+                            path_name = redimension_test_dir +"/"+ l +"/"
                     # if quality == "Eg":
                     #     path_name = result_redimension_dir +"/"+ eg_redimension_dir +"/"
 
                 cmd = "cp " + wavFile +" "+ path_name
                 sh.run(cmd)
 
-def clean(file_dir):
-    for i, f in enumerate(glob.glob(file_dir + os.sep +'*')):
-        # print f
-        cmd = "rm -rf " + f  + "/*.wav"
-        sh.run(cmd)
+
 
 
 
@@ -155,8 +151,8 @@ if __name__ == "__main__":
     read_dir = "read"
     padding_dir = "padding"
     redimension_dir = "redimension"
-    redimension__train_dir = "redimension/train"
-    redimension__test_dir = "redimension/test"
+    redimension_train_dir = "redimension/train"
+    redimension_test_dir = "redimension/test"
     labels = []
     T_total = 4
     sub_dirs = []
@@ -166,9 +162,9 @@ if __name__ == "__main__":
         labels.append(f.split(os.sep)[1])
     print labels
 
-    clean(padding_dir)
-    clean(redimension__train_dir)
-    clean(redimension__test_dir)
+    util.clean(padding_dir)
+    util.clean(redimension_train_dir)
+    util.clean(redimension_test_dir)
     read_audio(read_dir,sub_dirs,T_total,padding_dir,labels)
-    cut_padding_audio(padding_dir,sub_dirs,T_total,redimension_dir,labels)
-    clean(padding_dir)
+    cut_padding_audio(padding_dir,sub_dirs,T_total,labels,redimension_train_dir,redimension_test_dir)
+    util.clean(padding_dir)
