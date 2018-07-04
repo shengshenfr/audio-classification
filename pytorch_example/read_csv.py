@@ -6,7 +6,7 @@ import glob
 import pandas as pd
 import sh
 from datetime import datetime, timedelta, tzinfo
-from util import clean
+from util import clean_wav
 
 class FixedOffset(tzinfo):
     """offset_str: Fixed offset in str: e.g. '-0400'"""
@@ -218,7 +218,7 @@ if __name__ == '__main__':
     # combine_dir = "combine_wavFile"
     #clean files
 
-    clean(read_dir)
+    clean_wav(read_dir)
 
 
     # cmd = "rm -rf " + combine_dir  + "/*"

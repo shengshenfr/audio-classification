@@ -27,10 +27,10 @@ def main():
     csv_train_dir = sample_csv_dir + "/" + "train"
     csv_prediction_dir = sample_csv_dir + "/" + "prediction"
     redim_train_dir = redimension_dir+ "/" + "train"
-    redim_test_dir = redimension_dir+ "/" +"test"
+    redim_prediction_dir = redimension_dir+ "/" +"prediction"
     image_train_dir = image_dir+ "/" + "train"
-    image_test_dir = image_dir+ "/" +"test"
-    sub_dir = wav_train__dir +" "+ wav_prediction_dir +" "+ csv_train_dir +" "+ csv_prediction_dir +" "+redim_train_dir +" "+redim_test_dir+" "+image_train_dir+" "+image_test_dir
+    image_prediction_dir = image_dir+ "/" +"prediction"
+    sub_dir = wav_train__dir +" "+ wav_prediction_dir +" "+ csv_train_dir +" "+ csv_prediction_dir +" "+redim_train_dir +" "+redim_prediction_dir+" "+image_train_dir+" "+image_prediction_dir
     sh.run("mkdir -p "+ sub_dir)
 
     labels = []
@@ -54,10 +54,10 @@ def main():
         sh.run("mkdir -p "+ padding_dir +"/"+ l)
         # sh.run("mkdir -p "+ redimension_dir +"/"+ l)
         sh.run("mkdir -p "+ redim_train_dir +"/"+ l)
-        sh.run("mkdir -p "+ redim_test_dir +"/"+ l)
+        sh.run("mkdir -p "+ redim_prediction_dir +"/"+ l)
         sh.run("mkdir -p "+ prediction_wav_dir +"/"+ l)
         sh.run("mkdir -p "+ image_train_dir +"/"+ l)
-        sh.run("mkdir -p "+ image_test_dir +"/"+ l)
+        sh.run("mkdir -p "+ image_prediction_dir +"/"+ l)
 
 if __name__ == '__main__':
 	main()

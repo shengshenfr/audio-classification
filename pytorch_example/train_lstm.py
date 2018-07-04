@@ -51,19 +51,7 @@ class RNN(nn.Module):
 
 
 
-def split_data(train_features,train_labels):
-    # random train and test sets.
-    # train_test_split(features_normalization, lable[0], test_size = 0.2, random_state=0)
-    #print np.random.rand(len(train_features))
-    train_test_split = np.random.rand(len(train_features)) < 0.70
-    #print train_test_split
-    train_x = train_features[train_test_split]
-    train_y = train_labels[train_test_split]
-    test_x = train_features[~train_test_split]
-    test_y = train_labels[~train_test_split]
 
-    #print train_x.shape,train_y.shape
-    return train_x,train_y,test_x,test_y
 
 
 

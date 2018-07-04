@@ -12,35 +12,22 @@ from scipy import signal
 
 from sklearn import preprocessing
 
-
-def clean(file_dir):
+def clean_wav(file_dir):
     for i, f in enumerate(glob.glob(file_dir + os.sep +'*')):
         # print f
         cmd = "rm -rf " + f  + "/*.wav"
+        sh.run(cmd)
+
+def clean_image(file_dir):
+    for i, f in enumerate(glob.glob(file_dir + os.sep +'*')):
+        # print f
+        cmd = "rm -rf " + f  + "/*.png"
         sh.run(cmd)
 
 def splitext(wav_name):
     name = wav_name.split(".")
 
     return name
-
-def normaliser_features(features):
-
-    features_normalisation = preprocessing.scale(features)
-
-    return features_normalisation
-
-
-
-def encode_label(labels):
-    n_labels = len(labels)
-    n_unique_labels = len(np.unique(labels))
-    labels_encode = np.zeros((n_labels,1))
-    #print labels_encode
-    for i in range(n_labels):
-        labels_encode[i]= labels[i]
-
-    return labels_encode
 
 
 

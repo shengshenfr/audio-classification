@@ -204,11 +204,7 @@ if __name__ == "__main__":
     cmd = "rm -rf model/mfcc_model_cnn.pkl"
     sh.run(cmd)
 
-    train_path = "redimension/train"
-    test_path = "redimension/test"
 
-    image_train_path = "image/train"
-    image_test_path = "image/test"
 
     subs = ['Ba','Bm','Eg']
     file_ext = '*.wav'
@@ -216,13 +212,9 @@ if __name__ == "__main__":
     totalNumOfFeatures = 28
     max_len = 28
 
-    # clean(image_train_path)
-    # clean(image_test_path)
 
 
 
-    # rawSignal_to_image(train_path,subs,file_ext,image_train_path)
-    # rawSignal_to_image(test_path,subs,file_ext,image_test_path)
 
     '''
     types = ['mfcc','rawSignal']

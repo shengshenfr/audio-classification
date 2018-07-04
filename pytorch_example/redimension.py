@@ -90,7 +90,7 @@ def read_audio(read_dir,sub_dirs,T_total,padding_dir,labels):
 
 
 
-def cut_padding_audio(padding_dir,sub_dirs,T_total,labels,redimension_train_dir,redimension_test_dir):
+def cut_padding_audio(padding_dir,sub_dirs,T_total,labels,redimension_train_dir,redimension_prediction_dir):
     for k, sub_padding in enumerate(sub_dirs):
         #print("label: %s" % (label))
         print("sub_padding: %s" % (sub_padding))
@@ -121,7 +121,7 @@ def cut_padding_audio(padding_dir,sub_dirs,T_total,labels,redimension_train_dir,
                             if number>2:
                                 path_name = redimension_train_dir +"/"+ l +"/"
                             else:
-                                path_name = redimension_test_dir +"/"+ l +"/"
+                                path_name = redimension_prediction_dir +"/"+ l +"/"
                         # if quality == "Eg":
                         #     path_name = result_redimension_dir +"/"+ eg_redimension_dir +"/"
 
@@ -134,7 +134,7 @@ def cut_padding_audio(padding_dir,sub_dirs,T_total,labels,redimension_train_dir,
                         if number>2:
                             path_name = redimension_train_dir +"/"+ l +"/"
                         else:
-                            path_name = redimension_test_dir +"/"+ l +"/"
+                            path_name = redimension_prediction_dir +"/"+ l +"/"
                     # if quality == "Eg":
                     #     path_name = result_redimension_dir +"/"+ eg_redimension_dir +"/"
 
@@ -152,7 +152,7 @@ if __name__ == "__main__":
     padding_dir = "padding"
     redimension_dir = "redimension"
     redimension_train_dir = "redimension/train"
-    redimension_test_dir = "redimension/test"
+    redimension_prediction_dir = "redimension/test"
     labels = []
     T_total = 4
     sub_dirs = []
@@ -162,9 +162,9 @@ if __name__ == "__main__":
         labels.append(f.split(os.sep)[1])
     print labels
 
-    util.clean(padding_dir)
-    util.clean(redimension_train_dir)
-    util.clean(redimension_test_dir)
+    util.clean_wav(padding_dir)
+    util.clean_wav(redimension_train_dir)
+    util.clean_wav(redimension_prediction_dir)
     read_audio(read_dir,sub_dirs,T_total,padding_dir,labels)
-    cut_padding_audio(padding_dir,sub_dirs,T_total,labels,redimension_train_dir,redimension_test_dir)
-    util.clean(padding_dir)
+    cut_padding_audio(padding_dir,sub_dirs,T_total,labels,redimension_train_dir,redimension_prediction_dir)
+    util.clean_wav(padding_dir)
