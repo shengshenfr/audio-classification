@@ -11,6 +11,26 @@ import librosa.display
 from scipy import signal
 
 from sklearn import preprocessing
+from sklearn.model_selection import train_test_split
+
+def split_data(features,labels,split_ratio):
+    # random train and test sets.
+    train_x, test_x, train_y, test_y = train_test_split(features, labels, test_size = split_ratio, random_state=0)
+
+    #print np.random.rand(len(train_features))
+    '''
+    train_test_split = np.random.rand(len(train_features)) < split_ratio
+    #print train_test_split
+    train_x = train_features[train_test_split]
+    train_y = train_labels[train_test_split]
+    test_x = train_features[~train_test_split]
+    test_y = train_labels[~train_test_split]
+
+
+    #print train_x.shape,train_y.
+    '''
+    return train_x,train_y,test_x,test_y
+
 
 def clean_wav(file_dir):
     for i, f in enumerate(glob.glob(file_dir + os.sep +'*')):

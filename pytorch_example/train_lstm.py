@@ -5,7 +5,7 @@ import glob
 import numpy as np
 import math
 
-import util
+from util import split_data
 from extration import *
 
 from sklearn import preprocessing,metrics
@@ -17,12 +17,6 @@ from torch.nn import init
 import torch.utils.data as Data
 import torch.nn.functional as F
 
-
-hidden_size = 80
-num_layers = 2
-num_classes = 3
-batch_size = 50
-num_epochs = 1
 
 
 
@@ -50,14 +44,9 @@ class RNN(nn.Module):
         return out
 
 
+def train_rnn(train_features,train_labels,prediction_features,prediction_labels,model,optimizer,loss_func,input_size,batch_size,epochs,split_ratio):
 
-
-
-
-
-def train_rnn(features_normalisation,labels_encode,learning_rate,optimizer,drop_out,type):
-
-    train_x,train_y,test_x,test_y = split_data(features_normalisation,labels_encode)
+    train_x,train_y,test_x,test_y = split_data(train_features,train_labels,split_ratio)
     x, y = torch.from_numpy(train_x).float(), torch.from_numpy(train_y).long()
     train_dataset = Data.TensorDataset(x, y)
     train_loader = Data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True, num_workers=2,)
@@ -71,39 +60,27 @@ def train_rnn(features_normalisation,labels_encode,learning_rate,optimizer,drop_
     test_x = Variable(test_x1, requires_grad=False).type(torch.FloatTensor)
     test_y = test_y1.numpy().squeeze() # covert to numpy array
 
-    if type =='mfcc':
-        input_size = 13
-    elif type =='wavelet':
-        input_size = 12
-    elif type == 'rawSignal':
-        input_size =200
 
-    rnn = RNN(input_size, hidden_size, num_layers, num_classes,drop_out)
+    prediction_features1, prediction_labels1 = torch.from_numpy(prediction_features).float(), torch.from_numpy(prediction_labels).long()
+    prediction_features = Variable(prediction_features1, requires_grad=False).type(torch.FloatTensor)
+    prediction_labels = prediction_labels1.numpy().squeeze() # covert to numpy array
+
     # print(rnn)
 
-    if optimizer == 'Adam':
-        optimizer = torch.optim.Adam(rnn.parameters(), lr=learning_rate)
-    else:
-        optimizer = torch.optim.SGD(rnn.parameters(), lr=learning_rate)
-    loss_func = nn.CrossEntropyLoss()
 
 
-    for epoch in range(num_epochs):
+    for epoch in range(epochs):
         global_epoch_loss = 0
         for step, (x, y) in enumerate(train_loader):   # gives batch data
             #print (x.shape)
-            if type =='mfcc':
-                b_x = Variable(x.view(-1,1,13), requires_grad=False)
-            elif type =='wavelet':
-                b_x = Variable(x.view(-1,1,12), requires_grad=False)
-            elif type == 'rawSignal':
-                b_x = Variable(x.view(-1,1,200), requires_grad=False)
+            b_x = Variable(x.view(-1,1,input_size), requires_grad=False)
+
             #print (b_x.shape)
             #print b_x
             b_y = Variable(y.view(-1), requires_grad=False)   # batch y
             # print (b_y)
             # output = net(b_x)               # rnn output
-            output = rnn(b_x)
+            output = model(b_x)
             # print output
             loss = loss_func(output, b_y)   # cross entropy loss
             optimizer.zero_grad()           # clear gradients for this training step
@@ -111,91 +88,24 @@ def train_rnn(features_normalisation,labels_encode,learning_rate,optimizer,drop_
             optimizer.step()                # apply gradients
             global_epoch_loss += loss.data[0]
 
-            if step % 50 == 0:
-                if type =='mfcc':
-                    test_output = rnn(test_x.view(-1,1,13))
-                elif type =='wavelet':
-                    test_output = rnn(test_x.view(-1,1,12))
-                elif type == 'rawSignal':
-                    test_output = rnn(test_x.view(-1,1,200))
+            if step % 20 == 0:
+                test_output = model(test_x.view(-1,1,input_size))
 
                 pred_y = torch.max(test_output, 1)[1].data.numpy().squeeze()
 
                 accuracy = sum(pred_y == test_y) / float(test_y.size)
                 print('Epoch: ', epoch, '| train loss: %.4f' % loss.data[0], '| test accuracy: %.4f' % accuracy)
 
-    if type =='mfcc':
-        pre_output = rnn(test_x.view(-1,1,13))
-    elif type =='wavelet':
-        pre_output = rnn(test_x.view(-1,1,12))
-    elif type == 'rawSignal':
-        pre_output = rnn(test_x.view(-1,1,200))
+
+    pre_output = model(prediction_features.view(-1,1,input_size))
+
     pred_y = torch.max(pre_output, 1)[1].data.numpy().squeeze()
     # accuracy = sum(pred_y == test_y) / float(test_y.size)
-    # print (metrics.classification_report(test_y, pred_y))
+    print (metrics.classification_report(prediction_labels, pred_y))
 
     # print float(global_epoch_loss.numpy())
     # print float(test_y.size)
-    return float(global_epoch_loss.numpy())/float(test_y.size),rnn
+    return float(global_epoch_loss.numpy())/float(prediction_labels.size),model
 
 
-
-if __name__ == "__main__":
-
-
-    # cmd = "rm -rf model/*"
-    # sh.run(cmd)
-    '''
-    learning_rate = 0.01
-    optimizer = 'Adam'
-    dropout = 0.05
-    types = ['mfcc','wavelet','rawSignal']
-    features_mfcc = np.loadtxt("feature/train_features_mfcc.txt")
-    labels_mfcc = np.loadtxt("feature/train_label_mfcc.txt")
-    # print np.unique(labels_mfcc)
-
-    features_wavelet = np.loadtxt("feature/train_features_wavelet.txt")
-    labels_wavelet = np.loadtxt("feature/train_label_wavelet.txt")
-    # print np.unique(labels_wavelet)
-
-    features_rawSignal = np.loadtxt("feature/train_features_rawSignal.txt")
-    labels_rawSignal = np.loadtxt("feature/train_label_rawSignal.txt")
-    # print np.unique(labels_rawSignal)
-
-    for type in types:
-        print(type)
-        if type =='mfcc':
-            _,rnn1 = train_rnn(features_mfcc,labels_mfcc,learning_rate,optimizer,dropout,type)
-            torch.save(rnn1, 'model/mfcc_model_lstm.pkl')
-        elif type == 'wavelet':
-            _,rnn2 = train_rnn(features_wavelet,labels_wavelet,learning_rate,optimizer,dropout,type)
-            torch.save(rnn2, 'model/wavelet_model_lstm.pkl')
-        elif type == 'rawSignal':
-            _,rnn3 = train_rnn(features_rawSignal,labels_rawSignal,learning_rate,optimizer,dropout,type)
-            torch.save(rnn3, 'model/rawSignal_model_lstm.pkl')
-
-    '''
-###########################   choose best modele
-
-
-    type = 'mfcc'
-    features_mfcc = np.loadtxt("feature/train_features_mfcc.txt")
-    labels_mfcc = np.loadtxt("feature/train_label_mfcc.txt")
-    learning_rate = [0.01,0.1,0.5]
-    opt = ['Adam','SGD']
-    drop_out = [0.05,0.1,0.2]
-
-    best_loss = np.inf
-
-    for lr in learning_rate:
-        for op in opt:
-            for do in drop_out:
-                loss,rnn = train_rnn(features_mfcc,labels_mfcc,lr,op,do,type)
-                print('learning_rate:' ,lr,'| optimizer: ',op,'| dropout: ',do,'| loss: ',loss)
-
-                if loss > best_loss:
-                    print('loss was not improved')
-                else:
-                    print('Saving model...')
-                    best_loss = loss
-                    torch.save(rnn, 'model/best_mfcc_model_lstm.pkl')
+    

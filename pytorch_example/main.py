@@ -1,10 +1,11 @@
-import argparse
 import torch
 import torch.optim as optim
+from torch import nn
 import numpy as np
+
+import argparse
 import os
 import glob
-import sh
 import sys
 
 import librosa
@@ -13,13 +14,14 @@ import librosa.display
 import matplotlib.pyplot as plt
 import pylab
 
+import sh
 from read_csv import read,date_type
 from util import clean_wav,clean_image
 from redimension import read_audio, cut_padding_audio
 from initial import main
 from extration import parse_audio_files_mfcc,parse_audio_files_waveletPackets,parse_audio_files_rawSignal,get_cnn_mfccs,rawSignal_to_image
 
-
+from train_lstm import RNN,train_rnn
 
 
 #####  Init: create the files
@@ -71,10 +73,12 @@ parser.add_argument('--width', type=int, default=28,
 ##########  define parameters of network
 parser.add_argument('--features_type', default='mfcc',
                     help='type of features: mfcc,wavelet(only for network lstm),raw_signal')
-parser.add_argument('--batch_size', type=int, default=50,
+parser.add_argument('--batch_size', type=int, default=1,
                     metavar='N', help='training and valid batch size')
+
 parser.add_argument('--arc', default='lstm',
                     help='network architecture: lstm,cnn,wavenet')
+
 parser.add_argument('--epochs', type=int, default=1,
                     metavar='N', help='number of epochs to train')
 parser.add_argument('--lr', type=float, default=0.01,
@@ -83,10 +87,21 @@ parser.add_argument('--momentum', type=float, default=0.9,
                     metavar='M', help='SGD momentum, for SGD only')
 parser.add_argument('--optimizer', default='adam',
                     help='optimization method: sgd | adam')
-parser.add_argument('--do', type=float, default=0.1,
+parser.add_argument('--drop_out', type=float, default=0.1,
                     metavar='N', help='dropout')
+
 parser.add_argument('--split_ratio', type=float, default=0.7,
                     metavar='N', help='split train/test ratio')
+
+
+parser.add_argument('--num_layers', type=int, default=2,
+                    metavar='N', help='number of layers')
+parser.add_argument('--hidden_size', type=int, default=80,
+                    metavar='N', help='number of hidden size')
+parser.add_argument('--num_classes', type=int, default=3,
+                    metavar='N', help='number of classes')
+
+
 
 args = parser.parse_args()
 # print args.cut
@@ -103,7 +118,7 @@ if args.cut:
     # print("ok")
 
 #################  padding raw signal
-
+file_ext='*.wav'
 sub_dirs = []
 labels = []
 for i, f in enumerate(glob.glob(args.read_path + os.sep +'*')):
@@ -123,7 +138,6 @@ if args.extract:
     ############ lstm mfcc
     cmd = "rm -rf feature/*"
     sh.run(cmd)
-    file_ext='*.wav'
 
     lstm_train_features_mfcc,lstm_train_labels_mfcc = parse_audio_files_mfcc(args.redimension_train_path,sub_dirs,file_ext,args.mfcc_length)
     lstm_prediction_features_mfcc,lstm_prediction_labels_mfcc = parse_audio_files_mfcc(args.redimension_prediction_path,sub_dirs,file_ext,args.mfcc_length)
@@ -181,22 +195,116 @@ if args.extract:
 
 
 
-#######  loading data
-'''
+########### Loading data
+
 # types = ['mfcc','wavelet','rawSignal']
+
 if args.features_type == 'mfcc' and args.arc =='lstm':
-    features = np.loadtxt("feature/train_features_mfcc.txt")
-    labels = np.loadtxt("feature/train_label_mfcc.txt")
+    # train_features,train_labels = parse_audio_files_mfcc(args.redimension_train_path,sub_dirs,file_ext,args.mfcc_length)
+    # prediction_features,prediction_labels = parse_audio_files_mfcc(args.redimension_prediction_path,sub_dirs,file_ext,args.mfcc_length)
+
+    train_features = np.loadtxt("feature/lstm_train_features_mfcc.txt")
+    train_labels = np.loadtxt("feature/lstm_train_label_mfcc.txt")
+    prediction_features = np.loadtxt("feature/lstm_prediction_features_mfcc.txt")
+    prediction_labels = np.loadtxt("feature/lstm_prediction_labels_mfcc.txt")
+
+    input_size = train_features.shape[1]
+    # print("input size is ",input_size)
+    model = RNN(input_size,args.hidden_size, args.num_layers, args.num_classes,args.drop_out)
+
+    # define optimizer
+    if args.optimizer.lower() == 'adam':
+        optimizer = optim.Adam(model.parameters(), lr=args.lr)
+    elif args.optimizer.lower() == 'sgd':
+        optimizer = optim.SGD(model.parameters(), lr=args.lr,
+                              momentum=0.9)
+    else:
+        optimizer = optim.SGD(model.parameters(), lr=args.lr,
+                              momentum=0.9)
+
+    loss_func = nn.CrossEntropyLoss()
+
+
+    _,rnn1 = train_rnn(train_features,train_labels,prediction_features,prediction_labels,model,
+                                        optimizer,loss_func,input_size,args.batch_size,args.epochs,args.split_ratio)
+
+    torch.save(rnn1, 'model/mfcc_model_lstm.pkl')
+
 elif args.features_type == 'wavelet'and args.arc =='lstm':
-    features = np.loadtxt("feature/train_features_wavelet.txt")
-    labels = np.loadtxt("feature/train_label_wavelet.txt")
+    # train_features,train_labels = parse_audio_files_waveletPackets(args.redimension_train_path,sub_dirs,file_ext)
+    # prediction_features,prediction_labels = parse_audio_files_waveletPackets(args.redimension_prediction_path,sub_dirs,file_ext)
+    train_features = np.loadtxt("feature/lstm_train_features_wavelet.txt")
+    train_labels = np.loadtxt("feature/lstm_train_labels_wavelet.txt")
+    prediction_features = np.loadtxt("feature/lstm_prediction_features_wavelet.txt")
+    prediction_labels = np.loadtxt("feature/lstm_prediction_labels_wavelet.txt")
+
+    input_size = train_features.shape[1]
+    model = RNN(input_size,args.hidden_size, args.num_layers, args.num_classes,args.drop_out)
+
+    if args.optimizer.lower() == 'adam':
+        optimizer = optim.Adam(model.parameters(), lr=args.lr)
+    elif args.optimizer.lower() == 'sgd':
+        optimizer = optim.SGD(model.parameters(), lr=args.lr,
+                              momentum=0.9)
+    else:
+        optimizer = optim.SGD(model.parameters(), lr=args.lr,
+                              momentum=0.9)
+
+    loss_func = nn.CrossEntropyLoss()
+
+
+    _,rnn2 = train_rnn(train_features,train_labels,prediction_features,prediction_labels,model,
+                                        optimizer,loss_func,input_size,args.batch_size,args.epochs,args.split_ratio)
+
+    torch.save(rnn2, 'model/wavelet_model_lstm.pkl')
+
 elif args.features_type == 'raw_signal'and args.arc =='lstm':
-    features = np.loadtxt("feature/train_features_rawSignal.txt")
-    labels = np.loadtxt("feature/train_label_rawSignal.txt")
+    # train_features,train_labels = parse_audio_files_rawSignal(args.redimension_train_path,sub_dirs,file_ext,args.sample_size,args.sample_rate)
+    # prediction_features,prediction_labels = parse_audio_files_rawSignal(args.redimension_train_path,sub_dirs,file_ext,args.sample_size,args.sample_rate
+    train_features = np.loadtxt("feature/lstm_train_features_rawSignal.txt")
+    train_labels = np.loadtxt("feature/lstm_train_labels_rawSignal.txt")
+    prediction_features = np.loadtxt("feature/lstm_prediction_features_rawSignal.txt")
+    prediction_labels = np.loadtxt("feature/lstm_prediction_labels_rawSignal.txt")
+
+    input_size = train_features.shape[1]
+    # print input_size
+    model = RNN(input_size,args.hidden_size, args.num_layers, args.num_classes,args.drop_out)
+
+    if args.optimizer.lower() == 'adam':
+        optimizer = optim.Adam(model.parameters(), lr=args.lr)
+    elif args.optimizer.lower() == 'sgd':
+        optimizer = optim.SGD(model.parameters(), lr=args.lr,
+                              momentum=0.9)
+    else:
+        optimizer = optim.SGD(model.parameters(), lr=args.lr,
+                              momentum=0.9)
+
+    loss_func = nn.CrossEntropyLoss()
+
+
+    _,rnn3 = train_rnn(train_features,train_labels,prediction_features,prediction_labels,model,
+                                        optimizer,loss_func,input_size,args.batch_size,args.epochs,args.split_ratio)
+    torch.save(rnn3, 'model/rawSignal_model_lstm.pkl')
 
 elif args.features_type == 'mfcc'and args.arc =='cnn':
-    features = np.loadtxt('feature/cnn_train_features_mfcc.txt')
-    print features.shape
-    features = features.reshape((features.shape[0]/(length*width),length,width))
+    # train_features,train_labels = get_cnn_mfccs(args.redimension_train_path,sub_dirs,file_ext,args.length,args.width)
+    # prediction_features,prediction_labels = get_cnn_mfccs(args.redimension_prediction_path,sub_dirs,file_ext,args.length,args.width)
+    train_features = np.loadtxt("feature/cnn_train_features_mfcc.txt")
+    train_features = train_features.reshape(train_features.shape[0]/(length*width),length,width)
+    train_labels = np.loadtxt("feature/cnn_train_labels_mfcc.txt")
+    prediction_features = np.loadtxt("feature/cnn_prediction_features_mfcc.txt")
+    prediction_features = prediction_features.reshape(prediction_features.shape[0]/(length*width),length,width)
+    prediction_labels = np.loadtxt("feature/cnn_prediction_labels_mfcc.txt")
+
+    in_channels = 1
+    model = CNN(args.drop_out,args.length,args.width,in_channels)
+
+
 elif args.features_type == 'raw_signal'and args.arc =='cnn':
-'''
+    clean_image(args.image_train_path)
+    clean_image(args.image_prediction_path)
+    rawSignal_to_image(args.redimension_train_path,sub_dirs,file_ext,args.image_train_path)
+    rawSignal_to_image(args.redimension_prediction_path,sub_dirs,file_ext,args.image_prediction_path)
+
+    in_channels = 3
+    cnn = CNN(args.drop_out,args.length,args.width,in_channels)
