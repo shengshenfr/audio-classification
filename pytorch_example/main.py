@@ -22,7 +22,7 @@ from initial import main
 from extration import parse_audio_files_mfcc,parse_audio_files_waveletPackets,parse_audio_files_rawSignal,get_cnn_mfccs,rawSignal_to_image
 
 from train_lstm import RNN,train_rnn
-
+from train_cnn import CNN,train_mfcc,predict_mfcc,train_rawSignal,predict_rawSignal
 
 #####  Init: create the files
 # main()
@@ -90,7 +90,7 @@ parser.add_argument('--optimizer', default='adam',
 parser.add_argument('--drop_out', type=float, default=0.1,
                     metavar='N', help='dropout')
 
-parser.add_argument('--split_ratio', type=float, default=0.7,
+parser.add_argument('--split_ratio', type=float, default=0.3,
                     metavar='N', help='split train/test ratio')
 
 
@@ -177,7 +177,7 @@ if args.extract:
             np.savetxt(outfile, data_slice, fmt='%-7.6f')
             # Writing out a break to indicate different slices...
             outfile.write('# New slice\n')
-    np.savetxt("feature/cnn_train_label_mfcc.txt",cnn_train_labels_mfcc)
+    np.savetxt("feature/cnn_train_labels_mfcc.txt",cnn_train_labels_mfcc)
 
     with file('feature/cnn_prediction_features_mfcc.txt', 'w') as outfile:
         outfile.write('# Array shape: {0}\n'.format(cnn_prediction_features_mfcc.shape))
@@ -290,21 +290,53 @@ elif args.features_type == 'mfcc'and args.arc =='cnn':
     # train_features,train_labels = get_cnn_mfccs(args.redimension_train_path,sub_dirs,file_ext,args.length,args.width)
     # prediction_features,prediction_labels = get_cnn_mfccs(args.redimension_prediction_path,sub_dirs,file_ext,args.length,args.width)
     train_features = np.loadtxt("feature/cnn_train_features_mfcc.txt")
-    train_features = train_features.reshape(train_features.shape[0]/(length*width),length,width)
+    print train_features.shape[0]
+    train_features = train_features.reshape(train_features.shape[0]/args.length,args.length,args.width)
     train_labels = np.loadtxt("feature/cnn_train_labels_mfcc.txt")
+
     prediction_features = np.loadtxt("feature/cnn_prediction_features_mfcc.txt")
-    prediction_features = prediction_features.reshape(prediction_features.shape[0]/(length*width),length,width)
+    prediction_features = prediction_features.reshape(prediction_features.shape[0]/args.length,args.length,args.width)
     prediction_labels = np.loadtxt("feature/cnn_prediction_labels_mfcc.txt")
 
-    in_channels = 1
-    model = CNN(args.drop_out,args.length,args.width,in_channels)
 
+    in_channels = 1
+    model = CNN(args.num_classes,args.drop_out,args.length,args.width,in_channels)
+
+    if args.optimizer.lower() == 'adam':
+        optimizer = optim.Adam(model.parameters(), lr=args.lr)
+    elif args.optimizer.lower() == 'sgd':
+        optimizer = optim.SGD(model.parameters(), lr=args.lr,
+                              momentum=0.9)
+    else:
+        optimizer = optim.SGD(model.parameters(), lr=args.lr,
+                              momentum=0.9)
+    loss_func = nn.CrossEntropyLoss()
+
+    train_loss = train_mfcc(train_features,train_labels,model,
+                                        optimizer,loss_func,args.batch_size,args.epochs,args.split_ratio)
+    _,cnn = predict_mfcc(prediction_features,prediction_labels,model)
+    torch.save(cnn, 'model/mfcc_model_cnn.pkl')
 
 elif args.features_type == 'raw_signal'and args.arc =='cnn':
-    clean_image(args.image_train_path)
-    clean_image(args.image_prediction_path)
-    rawSignal_to_image(args.redimension_train_path,sub_dirs,file_ext,args.image_train_path)
-    rawSignal_to_image(args.redimension_prediction_path,sub_dirs,file_ext,args.image_prediction_path)
+    # clean_image(args.image_train_path)
+    # clean_image(args.image_prediction_path)
+    # rawSignal_to_image(args.redimension_train_path,sub_dirs,file_ext,args.image_train_path)
+    # rawSignal_to_image(args.redimension_prediction_path,sub_dirs,file_ext,args.image_prediction_path)
 
     in_channels = 3
-    cnn = CNN(args.drop_out,args.length,args.width,in_channels)
+    model = CNN(args.num_classes,args.drop_out,args.length,args.width,in_channels)
+
+    if args.optimizer.lower() == 'adam':
+        optimizer = optim.Adam(model.parameters(), lr=args.lr)
+    elif args.optimizer.lower() == 'sgd':
+        optimizer = optim.SGD(model.parameters(), lr=args.lr,
+                              momentum=0.9)
+    else:
+        optimizer = optim.SGD(model.parameters(), lr=args.lr,
+                              momentum=0.9)
+    loss_func = nn.CrossEntropyLoss()
+
+    train_loss = train_rawSignal(args.image_train_path,model,
+                                        optimizer,loss_func,args.batch_size,args.epochs,args.length,args.width)
+    _,cnn = predict_rawSignal(args.image_prediction_path,model,args.batch_size,args.length,args.width)
+    torch.save(cnn, 'model/rawSignal_model_cnn.pkl')
