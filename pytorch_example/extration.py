@@ -298,6 +298,17 @@ def encode_label(labels):
 
     return labels_encode
 
+'''
+def one_hot_encode_label(labels):
+    n_labels = len(labels)
+    n_unique_labels = len(np.unique(labels))
+    one_hot_encode = np.zeros((n_labels,n_unique_labels))
+    #print labels_encode
+    one_hot_encode[np.arange(n_labels), labels] = 1
+
+    return one_hot_encode
+
+'''
 
 
 

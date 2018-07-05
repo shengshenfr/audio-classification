@@ -65,10 +65,6 @@ def train_rnn(train_features,train_labels,prediction_features,prediction_labels,
     prediction_features = Variable(prediction_features1, requires_grad=False).type(torch.FloatTensor)
     prediction_labels = prediction_labels1.numpy().squeeze() # covert to numpy array
 
-    # print(rnn)
-
-
-
     for epoch in range(epochs):
         global_epoch_loss = 0
         for step, (x, y) in enumerate(train_loader):   # gives batch data
@@ -106,6 +102,3 @@ def train_rnn(train_features,train_labels,prediction_features,prediction_labels,
     # print float(global_epoch_loss.numpy())
     # print float(test_y.size)
     return float(global_epoch_loss.numpy())/float(prediction_labels.size),model
-
-
-    

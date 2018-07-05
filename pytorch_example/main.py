@@ -23,7 +23,7 @@ from extration import parse_audio_files_mfcc,parse_audio_files_waveletPackets,pa
 
 from train_lstm import RNN,train_rnn
 from train_cnn import CNN,train_mfcc,predict_mfcc,train_rawSignal,predict_rawSignal
-
+from test_wavenet import wavenet,train_wavenet
 #####  Init: create the files
 # main()
 
@@ -135,6 +135,7 @@ if args.padding:
     cut_padding_audio(args.padding_path,sub_dirs,args.T_total,labels,args.redimension_train_path,args.redimension_prediction_path)
 
 if args.extract:
+    '''
     ############ lstm mfcc
     cmd = "rm -rf feature/*"
     sh.run(cmd)
@@ -192,10 +193,30 @@ if args.extract:
     clean_image(args.image_prediction_path)
     rawSignal_to_image(args.redimension_train_path,sub_dirs,file_ext,args.image_train_path)
     rawSignal_to_image(args.redimension_prediction_path,sub_dirs,file_ext,args.image_prediction_path)
+    '''
+    ########### wavenet mfcc
+    net,rec_fields,max_size = wavenet()
 
+    wavenet_train_features_mfcc,wavenet_train_labels_mfcc = parse_audio_files_mfcc(args.redimension_train_path,sub_dirs,file_ext,max_size)
+    wavenet_prediction_features_mfcc,wavenet_prediction_labels_mfcc = parse_audio_files_mfcc(args.redimension_prediction_path,sub_dirs,file_ext,max_size)
 
+    np.savetxt("feature/wavenet_train_features_mfcc.txt",wavenet_train_features_mfcc)
+    np.savetxt("feature/wavenet_train_labels_mfcc.txt",wavenet_train_labels_mfcc)
+    np.savetxt("feature/wavenet_prediction_features_mfcc.txt",wavenet_prediction_features_mfcc)
+    np.savetxt("feature/wavenet_prediction_labels_mfcc.txt",wavenet_prediction_labels_mfcc)
 
-########### Loading data
+    ########### wavenet raw signal
+    wavenet_train_features_rawSignal,wavenet_train_labels_rawSignal = parse_audio_files_rawSignal(args.redimension_train_path,
+                                                            sub_dirs,file_ext,max_size,args.sample_rate)
+    wavenet_prediction_features_rawSignal,wavenet_prediction_labels_rawSignal = parse_audio_files_rawSignal(args.redimension_prediction_path,
+                                                            sub_dirs,file_ext,max_size,args.sample_rate)
+
+    np.savetxt("feature/wavenet_train_features_rawSignal.txt",wavenet_train_features_rawSignal)
+    np.savetxt("feature/wavenet_train_labels_rawSignal.txt",wavenet_train_labels_rawSignal)
+    np.savetxt("feature/wavenet_prediction_features_rawSignal.txt",wavenet_prediction_features_rawSignal)
+    np.savetxt("feature/wavenet_prediction_labels_rawSignal.txt",wavenet_prediction_labels_rawSignal)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~Loading data
 
 # types = ['mfcc','wavelet','rawSignal']
 
@@ -340,3 +361,58 @@ elif args.features_type == 'raw_signal'and args.arc =='cnn':
                                         optimizer,loss_func,args.batch_size,args.epochs,args.length,args.width)
     _,cnn = predict_rawSignal(args.image_prediction_path,model,args.batch_size,args.length,args.width)
     torch.save(cnn, 'model/rawSignal_model_cnn.pkl')
+
+
+elif args.features_type == 'mfcc'and args.arc =='wavenet':
+    ########### wavenet mfcc
+    model,rec_fields,_ = wavenet()
+
+    # wavenet_train_features_mfcc,wavenet_train_labels_mfcc = parse_audio_files_mfcc(args.redimension_train_path,sub_dirs,file_ext,max_size)
+    # wavenet_prediction_features_mfcc,wavenet_prediction_labels_mfcc = parse_audio_files_mfcc(args.redimension_prediction_path,sub_dirs,file_ext,max_size)
+
+    train_features = np.loadtxt("feature/wavenet_train_features_mfcc.txt")
+    train_labels = np.loadtxt("feature/wavenet_train_labels_mfcc.txt")
+    prediction_features = np.loadtxt("feature/wavenet_prediction_features_mfcc.txt")
+    prediction_labels = np.loadtxt("feature/wavenet_prediction_labels_mfcc.txt")
+
+    if args.optimizer.lower() == 'adam':
+        optimizer = optim.Adam(model.parameters(), lr=args.lr)
+    elif args.optimizer.lower() == 'sgd':
+        optimizer = optim.SGD(model.parameters(), lr=args.lr,
+                              momentum=0.9)
+    else:
+        optimizer = optim.SGD(model.parameters(), lr=args.lr,
+                              momentum=0.9)
+    loss_func = nn.CrossEntropyLoss()
+
+
+    train_wavenet(model,rec_fields,train_features,train_labels,prediction_features,prediction_labels,
+                                            optimizer,loss_func,args.batch_size,args.epochs,args.split_ratio)
+
+
+elif args.features_type == 'raw_signal'and args.arc =='wavenet':
+    ########### wavenet raw signal
+    # wavenet_train_features_rawSignal,wavenet_train_labels_rawSignal = parse_audio_files_rawSignal(args.redimension_train_path,
+                                                            # sub_dirs,file_ext,max_size,args.sample_rate)
+    # wavenet_prediction_features_rawSignal,wavenet_prediction_labels_rawSignal = parse_audio_files_rawSignal(args.redimension_prediction_path,
+                                                            # sub_dirs,file_ext,max_size,args.sample_rate)
+
+    train_features = np.loadtxt("feature/wavenet_train_features_rawSignal.txt")
+    train_labels = np.loadtxt("feature/wavenet_train_labels_rawSignal.txt")
+    prediction_features = np.loadtxt("feature/wavenet_prediction_features_rawSignal.txt")
+    prediction_labels = np.loadtxt("feature/wavenet_prediction_labels_rawSignal.txt")
+
+    model,rec_fields,_ = wavenet()
+
+    if args.optimizer.lower() == 'adam':
+        optimizer = optim.Adam(model.parameters(), lr=args.lr)
+    elif args.optimizer.lower() == 'sgd':
+        optimizer = optim.SGD(model.parameters(), lr=args.lr,
+                              momentum=0.9)
+    else:
+        optimizer = optim.SGD(model.parameters(), lr=args.lr,
+                              momentum=0.9)
+    loss_func = nn.CrossEntropyLoss()
+
+    train_wavenet(model,rec_fields,train_features,train_labels,prediction_features,prediction_labels,
+                                            optimizer,loss_func,args.batch_size,args.epochs,args.split_ratio)
