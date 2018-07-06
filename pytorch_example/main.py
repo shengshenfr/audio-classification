@@ -135,7 +135,7 @@ if args.padding:
     cut_padding_audio(args.padding_path,sub_dirs,args.T_total,labels,args.redimension_train_path,args.redimension_prediction_path)
 
 if args.extract:
-    '''
+
     ############ lstm mfcc
     cmd = "rm -rf feature/*"
     sh.run(cmd)
@@ -144,7 +144,7 @@ if args.extract:
     lstm_prediction_features_mfcc,lstm_prediction_labels_mfcc = parse_audio_files_mfcc(args.redimension_prediction_path,sub_dirs,file_ext,args.mfcc_length)
 
     np.savetxt("feature/lstm_train_features_mfcc.txt",lstm_train_features_mfcc)
-    np.savetxt("feature/lstm_train_label_mfcc.txt",lstm_train_labels_mfcc)
+    np.savetxt("feature/lstm_train_labels_mfcc.txt",lstm_train_labels_mfcc)
     np.savetxt("feature/lstm_prediction_features_mfcc.txt",lstm_prediction_features_mfcc)
     np.savetxt("feature/lstm_prediction_labels_mfcc.txt",lstm_prediction_labels_mfcc)
     ############ lstm wavelet
@@ -193,7 +193,7 @@ if args.extract:
     clean_image(args.image_prediction_path)
     rawSignal_to_image(args.redimension_train_path,sub_dirs,file_ext,args.image_train_path)
     rawSignal_to_image(args.redimension_prediction_path,sub_dirs,file_ext,args.image_prediction_path)
-    '''
+
     ########### wavenet mfcc
     net,rec_fields,max_size = wavenet()
 
@@ -225,7 +225,7 @@ if args.features_type == 'mfcc' and args.arc =='lstm':
     # prediction_features,prediction_labels = parse_audio_files_mfcc(args.redimension_prediction_path,sub_dirs,file_ext,args.mfcc_length)
     print("begin to train mfcc by lstm")
     train_features = np.loadtxt("feature/lstm_train_features_mfcc.txt")
-    train_labels = np.loadtxt("feature/lstm_train_label_mfcc.txt")
+    train_labels = np.loadtxt("feature/lstm_train_labels_mfcc.txt")
     prediction_features = np.loadtxt("feature/lstm_prediction_features_mfcc.txt")
     prediction_labels = np.loadtxt("feature/lstm_prediction_labels_mfcc.txt")
 

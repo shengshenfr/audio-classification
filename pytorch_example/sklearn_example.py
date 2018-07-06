@@ -14,6 +14,7 @@ from collections import Iterable
 import hmmlearn.hmm
 import matplotlib.pyplot as plt
 
+from util import evaluate
 
 
 def train_svm(features_train,labels_train, svm_best_parameter,filename):
@@ -157,17 +158,17 @@ def prediction(features_test,labels_test,model_prediction):
     print("prediction is",predictions)
 
     print("y_test is",labels_test)
-    print ("Classification Report:")
-    print (metrics.classification_report(labels_test, predictions))
-    print ("Confusion Matrix:")
-    print(metrics.confusion_matrix(labels_test, predictions))
-
+    # print ("Classification Report:")
+    # print (metrics.classification_report(labels_test, predictions))
+    # print ("Confusion Matrix:")
+    # print(metrics.confusion_matrix(labels_test, predictions))
+    evaluate(labels_test, predictions)
 
 
 
 if __name__ == '__main__':
-    features = np.loadtxt("feature/train_features_mfcc.txt")
-    labels = np.loadtxt("feature/train_label_mfcc.txt")
+    features = np.loadtxt("feature/lstm_train_features_mfcc.txt")
+    labels = np.loadtxt("feature/lstm_train_labels_mfcc.txt")
 
     print ("features are ",features)
     print ("labels are ",labels)
@@ -185,7 +186,7 @@ if __name__ == '__main__':
     filename = 'model/model_knn.sav'
     train_knn(features_train,labels_train, knn_best_parameter,filename)
     model_prediction = 'model/model_knn.sav'
-    
+
     startprob, transmat, means, cov = get_hmm_parameter(features_train,labels_train)
     filename = 'model/model_hmm.sav'
     train_hmm(startprob, transmat, means, cov,filename)
