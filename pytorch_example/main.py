@@ -16,7 +16,7 @@ import pylab
 
 import sh
 from read_csv import read,date_type
-from util import clean_wav,clean_image
+from util import clean_wav,clean_image,write_result
 from redimension import read_audio, cut_padding_audio
 from initial import main
 from extration import parse_audio_files_mfcc,parse_audio_files_waveletPackets,parse_audio_files_rawSignal,get_cnn_mfccs,rawSignal_to_image
@@ -223,7 +223,7 @@ if args.extract:
 if args.features_type == 'mfcc' and args.arc =='lstm':
     # train_features,train_labels = parse_audio_files_mfcc(args.redimension_train_path,sub_dirs,file_ext,args.mfcc_length)
     # prediction_features,prediction_labels = parse_audio_files_mfcc(args.redimension_prediction_path,sub_dirs,file_ext,args.mfcc_length)
-
+    print("begin to train mfcc by lstm")
     train_features = np.loadtxt("feature/lstm_train_features_mfcc.txt")
     train_labels = np.loadtxt("feature/lstm_train_label_mfcc.txt")
     prediction_features = np.loadtxt("feature/lstm_prediction_features_mfcc.txt")
@@ -246,10 +246,11 @@ if args.features_type == 'mfcc' and args.arc =='lstm':
     loss_func = nn.CrossEntropyLoss()
 
 
-    _,rnn1 = train_rnn(train_features,train_labels,prediction_features,prediction_labels,model,
+    loss,model,accuracy,precision,recall,f1,auc,training_time = train_rnn(train_features,train_labels,prediction_features,prediction_labels,model,
                                         optimizer,loss_func,input_size,args.batch_size,args.epochs,args.split_ratio)
 
-    torch.save(rnn1, 'model/mfcc_model_lstm.pkl')
+    torch.save(model, 'model/mfcc_model_lstm.pkl')
+    write_result(loss,accuracy,precision,recall,f1,auc,training_time,args.features_type,args.epochs,args.batch_size,args.split_ratio,args.arc)
 
 elif args.features_type == 'wavelet'and args.arc =='lstm':
     # train_features,train_labels = parse_audio_files_waveletPackets(args.redimension_train_path,sub_dirs,file_ext)
@@ -274,10 +275,11 @@ elif args.features_type == 'wavelet'and args.arc =='lstm':
     loss_func = nn.CrossEntropyLoss()
 
 
-    _,rnn2 = train_rnn(train_features,train_labels,prediction_features,prediction_labels,model,
+    loss,model,accuracy,precision,recall,f1,auc,training_time = train_rnn(train_features,train_labels,prediction_features,prediction_labels,model,
                                         optimizer,loss_func,input_size,args.batch_size,args.epochs,args.split_ratio)
 
-    torch.save(rnn2, 'model/wavelet_model_lstm.pkl')
+    torch.save(model, 'model/wavelet_model_lstm.pkl')
+    write_result(loss,accuracy,precision,recall,f1,auc,training_time,args.features_type,args.epochs,args.batch_size,args.split_ratio,args.arc)
 
 elif args.features_type == 'raw_signal'and args.arc =='lstm':
     # train_features,train_labels = parse_audio_files_rawSignal(args.redimension_train_path,sub_dirs,file_ext,args.sample_size,args.sample_rate)
@@ -303,9 +305,10 @@ elif args.features_type == 'raw_signal'and args.arc =='lstm':
     loss_func = nn.CrossEntropyLoss()
 
 
-    _,rnn3 = train_rnn(train_features,train_labels,prediction_features,prediction_labels,model,
+    loss,model,accuracy,precision,recall,f1,auc,training_time = train_rnn(train_features,train_labels,prediction_features,prediction_labels,model,
                                         optimizer,loss_func,input_size,args.batch_size,args.epochs,args.split_ratio)
-    torch.save(rnn3, 'model/rawSignal_model_lstm.pkl')
+    torch.save(model, 'model/rawSignal_model_lstm.pkl')
+    write_result(loss,accuracy,precision,recall,f1,auc,training_time,args.features_type,args.epochs,args.batch_size,args.split_ratio,args.arc)
 
 elif args.features_type == 'mfcc'and args.arc =='cnn':
     # train_features,train_labels = get_cnn_mfccs(args.redimension_train_path,sub_dirs,file_ext,args.length,args.width)
@@ -333,10 +336,11 @@ elif args.features_type == 'mfcc'and args.arc =='cnn':
                               momentum=0.9)
     loss_func = nn.CrossEntropyLoss()
 
-    train_loss = train_mfcc(train_features,train_labels,model,
+    loss,training_time = train_mfcc(train_features,train_labels,model,
                                         optimizer,loss_func,args.batch_size,args.epochs,args.split_ratio)
-    _,cnn = predict_mfcc(prediction_features,prediction_labels,model)
-    torch.save(cnn, 'model/mfcc_model_cnn.pkl')
+    model,accuracy,precision,recall,f1,auc = predict_mfcc(prediction_features,prediction_labels,model)
+    torch.save(model, 'model/mfcc_model_cnn.pkl')
+    write_result(loss,accuracy,precision,recall,f1,auc,training_time,args.features_type,args.epochs,args.batch_size,args.split_ratio,args.arc)
 
 elif args.features_type == 'raw_signal'and args.arc =='cnn':
     # clean_image(args.image_train_path)
@@ -357,10 +361,11 @@ elif args.features_type == 'raw_signal'and args.arc =='cnn':
                               momentum=0.9)
     loss_func = nn.CrossEntropyLoss()
 
-    train_loss = train_rawSignal(args.image_train_path,model,
+    loss,training_time  = train_rawSignal(args.image_train_path,model,
                                         optimizer,loss_func,args.batch_size,args.epochs,args.length,args.width)
-    _,cnn = predict_rawSignal(args.image_prediction_path,model,args.batch_size,args.length,args.width)
-    torch.save(cnn, 'model/rawSignal_model_cnn.pkl')
+    _,model,accuracy,precision,recall,f1,auc = predict_rawSignal(args.image_prediction_path,model,args.batch_size,args.length,args.width)
+    torch.save(model, 'model/rawSignal_model_cnn.pkl')
+    write_result(loss,accuracy,precision,recall,f1,auc,training_time,args.features_type,args.epochs,args.batch_size,args.split_ratio,args.arc)
 
 
 elif args.features_type == 'mfcc'and args.arc =='wavenet':
@@ -386,9 +391,9 @@ elif args.features_type == 'mfcc'and args.arc =='wavenet':
     loss_func = nn.CrossEntropyLoss()
 
 
-    train_wavenet(model,rec_fields,train_features,train_labels,prediction_features,prediction_labels,
+    loss,accuracy,precision,recall,f1,auc,training_time = train_wavenet(model,rec_fields,train_features,train_labels,prediction_features,prediction_labels,
                                             optimizer,loss_func,args.batch_size,args.epochs,args.split_ratio)
-
+    write_result(loss,accuracy,precision,recall,f1,auc,training_time,args.features_type,args.epochs,args.batch_size,args.split_ratio,args.arc)
 
 elif args.features_type == 'raw_signal'and args.arc =='wavenet':
     ########### wavenet raw signal
@@ -414,5 +419,6 @@ elif args.features_type == 'raw_signal'and args.arc =='wavenet':
                               momentum=0.9)
     loss_func = nn.CrossEntropyLoss()
 
-    train_wavenet(model,rec_fields,train_features,train_labels,prediction_features,prediction_labels,
+    loss,accuracy,precision,recall,f1,auc,training_time  = train_wavenet(model,rec_fields,train_features,train_labels,prediction_features,prediction_labels,
                                             optimizer,loss_func,args.batch_size,args.epochs,args.split_ratio)
+    write_result(loss,accuracy,precision,recall,f1,auc,training_time,args.features_type,args.epochs,args.batch_size,args.split_ratio,args.arc)

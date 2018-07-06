@@ -12,7 +12,8 @@ import os
 import glob
 
 from sklearn import preprocessing,metrics
-from util import split_data
+from util import split_data,evaluate
+import time
 
 
 LAYER_SIZE = 4  # 10 in paper
@@ -49,9 +50,10 @@ def train_wavenet(net,rec_fields,train_features,train_labels,prediction_features
     prediction_features = Variable(prediction_features1, requires_grad=False).type(torch.FloatTensor)
     prediction_labels = prediction_labels1.numpy().squeeze() # covert to numpy array
 
+    start_time = time.time()
 
     for epoch in range(epochs):
-        # global_epoch_loss = 0
+        global_epoch_loss = 0
         for step, (x, y) in enumerate(train_loader):   # gives batch data
             # print x.shape
             b_x = Variable(x.view(-1,IN_CHANNELS,rec_fields+1), requires_grad=False)
@@ -65,7 +67,7 @@ def train_wavenet(net,rec_fields,train_features,train_labels,prediction_features
             loss.backward()                 # backpropagation, compute gradients
             optimizer.step()                # apply gradients
 
-            # global_epoch_loss += loss.data[0]
+            global_epoch_loss += loss.data[0]
 
             if step % 50 == 0:
                 test_output = net(test_x.view(-1,IN_CHANNELS,rec_fields+1))
@@ -73,8 +75,17 @@ def train_wavenet(net,rec_fields,train_features,train_labels,prediction_features
                 accuracy = sum(pred_y == test_y) / float(test_y.size)
                 print('train loss: %.4f' % loss.data[0], '| test accuracy: %.4f' % accuracy)
 
+    end_time = time.time()
+    training_time = end_time-start_time
 
     pre_output = net(prediction_features.view(-1,IN_CHANNELS,rec_fields+1))
     pred_y = torch.max(pre_output, 1)[1].data.numpy().squeeze()
     # accuracy = sum(pred_y == test_y) / float(test_y.size)
-    print (metrics.classification_report(prediction_labels, pred_y))
+    # print (metrics.classification_report(prediction_labels, pred_y))
+    accuracy,precision,recall,f1,auc = evaluate(prediction_labels,pred_y)
+    loss = float(global_epoch_loss.numpy())/float(train_x.size)
+    loss = "{:.4f}".format(loss)
+    # print loss
+    training_time = "{:.4f} s".format(training_time)
+
+    return loss,accuracy,precision,recall,f1,auc,training_time

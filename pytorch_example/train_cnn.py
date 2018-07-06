@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 import pylab
 
 import sh
-from util import split_data
+from util import split_data,evaluate
 
 
 
@@ -106,9 +106,14 @@ def train_mfcc(train_features,train_labels,model,
                 accuracy = sum(pred_y.numpy() == test_y.numpy()) / float(test_y.size(0))
                 print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tAccuracy: {:.4f}%'.format(
                     epoch, step * len(b_x), len(train_loader.dataset), 100.* step / len(train_loader), loss.data[0],accuracy))
+        loss = global_epoch_loss / len(train_loader.dataset)
+        loss = "{:.4f}".format(loss)
+    # return global_epoch_loss / len(train_loader.dataset)
+    end_time = time.time()
+    training_time = end_time-start_time
+    training_time = "{:.4f} s".format(training_time)
 
-    return global_epoch_loss / len(train_loader.dataset)
-
+    return loss,training_time
 
 
 
@@ -122,16 +127,16 @@ def predict_mfcc(prediction_features,prediction_labels,model):
     pred_y = torch.max(pred_output, 1)[1].data.squeeze()
     # print test_y.size(0)
     # print float(sum(pred_y == test_y))
-    accuracy = sum(pred_y.numpy() == test_y.numpy()) / float(test_y.size(0))
+    # accuracy = sum(pred_y.numpy() == test_y.numpy()) / float(test_y.size(0))
 
     # print('Epoch: ', epoch, '| train loss: %.4f' % loss.data[0], '| test accuracy: %.4f' % accuracy)
 
     # print type(loss.data[0].numpy())
     # pre_output,_ = cnn(test_x)
     # pred_y = torch.max(pre_output, 1)[1].data.numpy().squeeze()
-    print (metrics.classification_report(test_y.numpy(), pred_y))
-
-    return accuracy,model
+    # print (metrics.classification_report(test_y.numpy(), pred_y))
+    accuracy,precision,recall,f1,auc = evaluate(prediction_labels,pred_y)
+    return model,accuracy,precision,recall,f1,auc
 
 
 
@@ -144,6 +149,7 @@ def train_rawSignal(image_train_path,model,optimizer,loss_func,batch_size,epochs
     train_data = torchvision.datasets.ImageFolder(root=image_train_path, transform=transform )
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size,shuffle=True, num_workers=2)
 
+    start_time = time.time()
     for epoch in range(epochs):
         model.train()
         global_epoch_loss = 0
@@ -163,7 +169,13 @@ def train_rawSignal(image_train_path,model,optimizer,loss_func,batch_size,epochs
             if i % 50 == 0:
                 print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                     epoch, i * len(inputs), len(train_loader.dataset), 100.* i / len(train_loader), loss.data[0]))
-    return global_epoch_loss / len(train_loader.dataset)
+        loss = global_epoch_loss / len(train_loader.dataset)
+        loss = "{:.4f}".format(loss)
+    # return global_epoch_loss / len(train_loader.dataset)
+    end_time = time.time()
+    training_time = end_time-start_time
+    training_time = "{:.4f} s".format(training_time)
+    return loss,training_time
 
 
 def predict_rawSignal(image_test_path,model,batch_size,length,width):
@@ -191,8 +203,8 @@ def predict_rawSignal(image_test_path,model,batch_size,length,width):
         # print type(output)
         # print output[0]
         pred = output[0].max(1, keepdim=True)[1]
-        pred_y = np.append(pred_y,pred)
-        test_y = np.append(test_y,labels)
+        pred_y = np.append(pred_y,pred-1)
+        test_y = np.append(test_y,labels-1)
         # print pred_y
         # pred = torch.max(output[0], 1)[1].data.squeeze()
         # print pred
@@ -202,6 +214,6 @@ def predict_rawSignal(image_test_path,model,batch_size,length,width):
     # print correct.numpy()
     # print len(test_loader.dataset)
     # print float(correct) /len(test_loader.dataset)
-    print (metrics.classification_report(test_y, pred_y))
-
-    return float(correct) /len(test_loader.dataset),model
+    # print (metrics.classification_report(test_y, pred_y))
+    accuracy,precision,recall,f1,auc = evaluate(test_y, pred_y)
+    return float(correct) /len(test_loader.dataset),model,accuracy,precision,recall,f1,auc

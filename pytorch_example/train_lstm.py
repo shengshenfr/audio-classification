@@ -4,11 +4,9 @@ import glob
 
 import numpy as np
 import math
-
-from util import split_data
+import time
+from util import split_data,evaluate
 from extration import *
-
-from sklearn import preprocessing,metrics
 
 import torch
 from torch import nn
@@ -16,8 +14,10 @@ from torch.autograd import Variable
 from torch.nn import init
 import torch.utils.data as Data
 import torch.nn.functional as F
+from sklearn import metrics
 
-
+# import multiprocessing
+# import GPUtil as GPU
 
 
 class RNN(nn.Module):
@@ -65,6 +65,9 @@ def train_rnn(train_features,train_labels,prediction_features,prediction_labels,
     prediction_features = Variable(prediction_features1, requires_grad=False).type(torch.FloatTensor)
     prediction_labels = prediction_labels1.numpy().squeeze() # covert to numpy array
 
+    # p = multiprocessing.Process(target = monitor_gpu)
+    # p.start()
+    start_time = time.time()
     for epoch in range(epochs):
         global_epoch_loss = 0
         for step, (x, y) in enumerate(train_loader):   # gives batch data
@@ -92,13 +95,21 @@ def train_rnn(train_features,train_labels,prediction_features,prediction_labels,
                 accuracy = sum(pred_y == test_y) / float(test_y.size)
                 print('Epoch: ', epoch, '| train loss: %.4f' % loss.data[0], '| test accuracy: %.4f' % accuracy)
 
-
+    end_time = time.time()
+    training_time = end_time-start_time
+    # p.terminate()
     pre_output = model(prediction_features.view(-1,1,input_size))
 
     pred_y = torch.max(pre_output, 1)[1].data.numpy().squeeze()
     # accuracy = sum(pred_y == test_y) / float(test_y.size)
-    print (metrics.classification_report(prediction_labels, pred_y))
 
+    accuracy,precision,recall,f1,auc = evaluate(prediction_labels,pred_y)
     # print float(global_epoch_loss.numpy())
-    # print float(test_y.size)
-    return float(global_epoch_loss.numpy())/float(prediction_labels.size),model
+    # print train_x.size
+    # print train_x.shape
+    loss = float(global_epoch_loss.numpy())/float(train_x.size)
+    loss = "{:.4f}".format(loss)
+    # print loss
+    training_time = "{:.4f} s".format(training_time)
+
+    return loss,model,accuracy,precision,recall,f1,auc,training_time
