@@ -29,8 +29,8 @@ def monitor_gpu():
 '''
 
 def evaluate(prediction_labels,pred_y):
-    print prediction_labels
-    print pred_y
+    # print prediction_labels
+    # print pred_y
     print ("Classification Report:")
     print (metrics.classification_report(prediction_labels, pred_y))
     print ("Confusion Matrix:")
