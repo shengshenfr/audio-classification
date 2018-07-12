@@ -91,7 +91,7 @@ parser.add_argument('--drop_out', type=float, default=0.1,
                     metavar='N', help='dropout')
 
 parser.add_argument('--split_ratio', type=float, default=0.3,
-                    metavar='N', help='split train/test ratio')
+                    metavar='N', help='split test/train ratio')
 
 
 parser.add_argument('--num_layers', type=int, default=2,
@@ -250,6 +250,7 @@ if args.features_type == 'mfcc' and args.arc =='lstm':
                                         optimizer,loss_func,input_size,args.batch_size,args.epochs,args.split_ratio)
 
     torch.save(model, 'model/mfcc_model_lstm.pkl')
+    print ("training time %.4f s" % training_time)
     write_result(loss,accuracy,precision,recall,f1,auc,training_time,args.features_type,args.epochs,args.batch_size,args.split_ratio,args.arc)
 
 elif args.features_type == 'wavelet'and args.arc =='lstm':
@@ -279,6 +280,7 @@ elif args.features_type == 'wavelet'and args.arc =='lstm':
                                         optimizer,loss_func,input_size,args.batch_size,args.epochs,args.split_ratio)
 
     torch.save(model, 'model/wavelet_model_lstm.pkl')
+    print ("training time %.4f s" % training_time)
     write_result(loss,accuracy,precision,recall,f1,auc,training_time,args.features_type,args.epochs,args.batch_size,args.split_ratio,args.arc)
 
 elif args.features_type == 'raw_signal'and args.arc =='lstm':
@@ -308,6 +310,7 @@ elif args.features_type == 'raw_signal'and args.arc =='lstm':
     loss,model,accuracy,precision,recall,f1,auc,training_time = train_rnn(train_features,train_labels,prediction_features,prediction_labels,model,
                                         optimizer,loss_func,input_size,args.batch_size,args.epochs,args.split_ratio)
     torch.save(model, 'model/rawSignal_model_lstm.pkl')
+    print ("training time %.4f s" % training_time)
     write_result(loss,accuracy,precision,recall,f1,auc,training_time,args.features_type,args.epochs,args.batch_size,args.split_ratio,args.arc)
 
 elif args.features_type == 'mfcc'and args.arc =='cnn':
@@ -340,6 +343,7 @@ elif args.features_type == 'mfcc'and args.arc =='cnn':
                                         optimizer,loss_func,args.batch_size,args.epochs,args.split_ratio)
     model,accuracy,precision,recall,f1,auc = predict_mfcc(prediction_features,prediction_labels,model)
     torch.save(model, 'model/mfcc_model_cnn.pkl')
+    print ("training time %.4f s" % training_time)
     write_result(loss,accuracy,precision,recall,f1,auc,training_time,args.features_type,args.epochs,args.batch_size,args.split_ratio,args.arc)
 
 elif args.features_type == 'raw_signal'and args.arc =='cnn':
@@ -365,6 +369,7 @@ elif args.features_type == 'raw_signal'and args.arc =='cnn':
                                         optimizer,loss_func,args.batch_size,args.epochs,args.length,args.width)
     _,model,accuracy,precision,recall,f1,auc = predict_rawSignal(args.image_prediction_path,model,args.batch_size,args.length,args.width)
     torch.save(model, 'model/rawSignal_model_cnn.pkl')
+    print ("training time %.4f s" % training_time)
     write_result(loss,accuracy,precision,recall,f1,auc,training_time,args.features_type,args.epochs,args.batch_size,args.split_ratio,args.arc)
 
 
@@ -393,6 +398,7 @@ elif args.features_type == 'mfcc'and args.arc =='wavenet':
 
     loss,accuracy,precision,recall,f1,auc,training_time = train_wavenet(model,rec_fields,train_features,train_labels,prediction_features,prediction_labels,
                                             optimizer,loss_func,args.batch_size,args.epochs,args.split_ratio)
+    print ("training time %.4f s" % training_time)
     write_result(loss,accuracy,precision,recall,f1,auc,training_time,args.features_type,args.epochs,args.batch_size,args.split_ratio,args.arc)
 
 elif args.features_type == 'raw_signal'and args.arc =='wavenet':
@@ -421,4 +427,5 @@ elif args.features_type == 'raw_signal'and args.arc =='wavenet':
 
     loss,accuracy,precision,recall,f1,auc,training_time  = train_wavenet(model,rec_fields,train_features,train_labels,prediction_features,prediction_labels,
                                             optimizer,loss_func,args.batch_size,args.epochs,args.split_ratio)
+    print ("training time %.4f s" % training_time)
     write_result(loss,accuracy,precision,recall,f1,auc,training_time,args.features_type,args.epochs,args.batch_size,args.split_ratio,args.arc)

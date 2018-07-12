@@ -14,8 +14,8 @@ from sklearn import preprocessing,metrics
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score,roc_auc_score,precision_score,f1_score,recall_score
 
-import multiprocessing
-import GPUtil as GPU
+# import multiprocessing
+# import GPUtil as GPU
 
 '''
 def monitor_gpu():
@@ -37,9 +37,9 @@ def evaluate(prediction_labels,pred_y):
     print(metrics.confusion_matrix(prediction_labels, pred_y))
 
     print ("Accuracy: {:.2f}%".format(100* accuracy_score(prediction_labels, pred_y)))
-    print ("precision: {:.2f}%".format(100 * precision_score(prediction_labels, pred_y, average='micro')))
-    print ("recall: {:.2f}%".format(100 * recall_score(prediction_labels, pred_y, average='micro')))
-    print ("f1 score: {:.2f}%".format(100 * f1_score(prediction_labels, pred_y, average='micro')))
+    print ("precision: {:.2f}%".format(100 * precision_score(prediction_labels, pred_y, average='macro')))
+    print ("recall: {:.2f}%".format(100 * recall_score(prediction_labels, pred_y, average='macro')))
+    print ("f1 score: {:.2f}%".format(100 * f1_score(prediction_labels, pred_y, average='macro')))
     print ("auc area: {:.2f}%".format(100 * roc_auc_score(prediction_labels, pred_y)))
     # print ("training time %.4f s" % training_time)
     accuracy = "{:.2f}%".format(100* accuracy_score(prediction_labels, pred_y))
