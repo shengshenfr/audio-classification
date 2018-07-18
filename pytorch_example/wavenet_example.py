@@ -193,7 +193,7 @@ class DensNet(torch.nn.Module):
         output = self.conv2(output)
         # print output.size()
 
-        # output = self.softmax(output)
+        output = self.softmax(output)
 
         return output
 

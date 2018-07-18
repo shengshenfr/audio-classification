@@ -60,9 +60,11 @@ def train_wavenet(net,rec_fields,train_features,train_labels,prediction_features
 
             b_y = Variable(y.view(-1), requires_grad=False)   # batch y
             output = net(b_x)
+            # print ("b_y",b_y.shape)
+            # print ("output",output.shape)
             # print b_y.reshape(1,-1).shape
             # print b_y.reshape(1,-1)
-            loss = loss_func(output, b_y.reshape(1,-1))   # cross entropy loss
+            loss = loss_func(output, b_y.reshape(b_y.shape[0],-1))   # cross entropy loss
             optimizer.zero_grad()           # clear gradients for this training step
             loss.backward()                 # backpropagation, compute gradients
             optimizer.step()                # apply gradients

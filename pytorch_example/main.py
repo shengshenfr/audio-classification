@@ -132,8 +132,9 @@ if args.padding:
     clean_wav(args.redimension_train_path)
     clean_wav(args.redimension_prediction_path)
     read_audio(args.read_path,sub_dirs,args.T_total,args.padding_path,labels)
+    clean_wav(args.read_path)
     cut_padding_audio(args.padding_path,sub_dirs,args.T_total,labels,args.redimension_train_path,args.redimension_prediction_path)
-
+    clean_wav(args.padding_path)
 if args.extract:
 
     ############ lstm mfcc
