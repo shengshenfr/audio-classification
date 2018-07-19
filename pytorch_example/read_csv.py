@@ -6,7 +6,7 @@ import glob
 import pandas as pd
 import sh
 from datetime import datetime, timedelta, tzinfo
-from util import clean_wav
+import util
 
 class FixedOffset(tzinfo):
     """offset_str: Fixed offset in str: e.g. '-0400'"""
@@ -36,7 +36,7 @@ def read(csv_train_dir):
     duration = []
     segQuality = []
     for j,sample_file in enumerate(glob.glob(csv_train_dir + os.sep +'*.csv')):
-        # print sample_file
+        # print("sample file ",sample_file)
         with open(sample_file, 'rb') as csvfile:
             reader = csv.reader(csvfile, delimiter=',', quotechar='|')
             for j, row in enumerate(reader):
@@ -58,15 +58,16 @@ def read(csv_train_dir):
                 segQuality.append(row[5])
                 #print dur
         #print segProjet,segSite,segStart,duration,segLabel,segQuality
-    # print segProjet
+    # print(segProjet)
     return segProjet,segSite,segStart,duration,segLabel,segQuality
 
 
 def date_type(wav_dir,segProjet,segSite,segStart,duration,segLabel,segQuality,read_dir):
     # print max(duration)
     # print min(duration
-    print wav_dir
-    print read_dir
+    # print wav_dir
+    # print read_dir
+    max_duration_total = []
     for i, f in enumerate(glob.glob(wav_dir + os.sep +'*.wav')):               # for each WAV file
         wavFile = f
         # print os.path.splitext(wavFile)[0]
@@ -111,9 +112,12 @@ def date_type(wav_dir,segProjet,segSite,segStart,duration,segLabel,segQuality,re
         #
         # print  len(cut_time_start),len(cut_time_duration),len(cut_time_label)
 
-        cut(wavFile, segProjet,segSite,segStart,duration,segLabel,segQuality, read_dir,start_date)
-
-
+        max_duration_file = cut(wavFile, segProjet,segSite,segStart,duration,segLabel,segQuality, read_dir,start_date)
+        max_duration_total.append(max_duration_file)
+    # print("duration is",max_duration_total)
+    max_duration = max(max_duration_total)
+    # print("max duration is ",max_duration)
+    return max_duration
 
 
 def cut(wavFile,segProjet,segSite,segStart,duration,segLabel,segQuality, read_dir,start_date):
@@ -188,7 +192,11 @@ def cut(wavFile,segProjet,segSite,segStart,duration,segLabel,segQuality, read_di
     # rs = sh.run(cmd, True)
     # duration_in_resultFile = rs.stdout()
     # print("the duration of resultfile is ", duration_in_resultFile)
-
+    if not good_duration:
+        good_duration.append(0)
+    max_duration_file = max(good_duration)
+    # print("the max duration is ", max_duration_file)
+    return max_duration_file
 
 '''
 def combine(result_dir,combine_dir):
@@ -207,9 +215,9 @@ def combine(result_dir,combine_dir):
 if __name__ == '__main__':
 
 
-    csv_train_dir = "data_csv/train"
+    csv_train_dir = "csvData/train"
 
-    wav_dir = 'data_wav/train'
+    wav_dir = 'wavData/train'
 
     read_dir = "read"
 
@@ -218,13 +226,13 @@ if __name__ == '__main__':
     # combine_dir = "combine_wavFile"
     #clean files
 
-    clean_wav(read_dir)
+    util.clean_wav(read_dir)
 
 
     # cmd = "rm -rf " + combine_dir  + "/*"
     # sh.run(cmd)
     segProjet,segSite,segStart,duration,segLabel,segQuality = read(csv_train_dir)
-    date_type(wav_dir,segProjet,segSite,segStart,duration,segLabel,segQuality,read_dir)
+    max_duration = date_type(wav_dir,segProjet,segSite,segStart,duration,segLabel,segQuality,read_dir)
 
     # combine(result_dir,combine_dir)
 

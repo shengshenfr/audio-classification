@@ -12,7 +12,7 @@ import os
 import glob
 
 from sklearn import preprocessing,metrics
-from util import split_data,evaluate
+import util
 import time
 
 
@@ -36,7 +36,7 @@ def wavenet():
 def train_wavenet(net,rec_fields,train_features,train_labels,prediction_features,prediction_labels,
                                         optimizer,loss_func,batch_size,epochs,split_ratio):
 
-    train_x,train_y,test_x,test_y = split_data(train_features,train_labels,split_ratio)
+    train_x,train_y,test_x,test_y = util.split_data(train_features,train_labels,split_ratio)
     x, y = torch.from_numpy(train_x).float(), torch.from_numpy(train_y).long()
     train_dataset = Data.TensorDataset(x, y)
     train_loader = Data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True, num_workers=2,)
@@ -84,7 +84,7 @@ def train_wavenet(net,rec_fields,train_features,train_labels,prediction_features
     pred_y = torch.max(pre_output, 1)[1].data.numpy().squeeze()
     # accuracy = sum(pred_y == test_y) / float(test_y.size)
     # print (metrics.classification_report(prediction_labels, pred_y))
-    accuracy,precision,recall,f1,auc = evaluate(prediction_labels,pred_y)
+    accuracy,precision,recall,f1,auc = util.evaluate(prediction_labels,pred_y)
     loss = float(global_epoch_loss.numpy())/float(train_x.size)
     loss = "{:.4f}".format(loss)
     # print loss

@@ -6,10 +6,8 @@ import sh
 import matplotlib.pyplot as plt
 import librosa
 import util
-
-
-
-
+import random
+import shutil
 
 def padding_audio(data,fs,T):
     # Calculate target number of samples
@@ -88,6 +86,34 @@ def read_audio(read_dir,sub_dirs,T_total,padding_dir,labels):
                         librosa.output.write_wav(out_wav, out_data, fs)
 
 
+def distribuer(ratio,padding_dir,sub_dirs,redimension_train_dir,redimension_validation_dir):
+    for k, sub_dir in enumerate(sub_dirs):
+        for i, f in enumerate(glob.glob(padding_dir + os.sep+ sub_dir + os.sep)):
+            # print(f)
+            name_list=list(os.path.join(f,name) for name in os.listdir(f))
+
+            print(len(name_list))
+            numfiles = int(round(len(name_list)*ratio))
+            name_list = np.random.permutation(name_list)
+            # random_name_list=list(random.sample(name_list,numfiles))
+            # print(name_list)
+            # print(len(random_name_list))
+            for i in range(numfiles):
+                # print(oldname)
+                # print(name_list[i])
+                specie = name_list[i].split("/")[1]
+                # print(specie)
+                dstPath = redimension_train_dir+"/"+specie+"/"
+                shutil.copyfile(name_list[i],name_list[i].replace(f, dstPath))
+
+            for i in range(numfiles,len(name_list)):
+                # print(oldname)
+                # print(name_list[i])
+                specie = name_list[i].split("/")[1]
+                # print(specie)
+                dstPath = redimension_validation_dir+"/"+specie+"/"
+                shutil.copyfile(name_list[i],name_list[i].replace(f, dstPath))
+'''
 
 
 def cut_padding_audio(padding_dir,sub_dirs,T_total,labels,redimension_train_dir,redimension_prediction_dir):
@@ -141,7 +167,7 @@ def cut_padding_audio(padding_dir,sub_dirs,T_total,labels,redimension_train_dir,
                 cmd = "cp " + wavFile +" "+ path_name
                 sh.run(cmd)
 
-
+'''
 
 
 
@@ -150,11 +176,14 @@ if __name__ == "__main__":
     # wav_dir = "result_eg"
     read_dir = "read"
     padding_dir = "padding"
-    redimension_dir = "redimension"
+    # redimension_dir = "redimension"
     redimension_train_dir = "redimension/train"
-    redimension_prediction_dir = "redimension/test"
+    redimension_validation_dir = "redimension/validation"
+    # padding_train_dir = "padding/train"
+    # padding_validation_dir = "padding/validation"
+    # padding_test_dir = "padding/test"
     labels = []
-    T_total = 4
+    T_total = 40
     sub_dirs = []
     for i, f in enumerate(glob.glob(read_dir + os.sep +'*')):
         f = os.path.splitext(f)[0]
@@ -162,9 +191,9 @@ if __name__ == "__main__":
         labels.append(f.split(os.sep)[1])
     print labels
 
-    util.clean_wav(padding_dir)
     util.clean_wav(redimension_train_dir)
-    util.clean_wav(redimension_prediction_dir)
+    util.clean_wav(redimension_validation_dir)
+    # util.clean_wav(padding_test_dir)
     read_audio(read_dir,sub_dirs,T_total,padding_dir,labels)
-    cut_padding_audio(padding_dir,sub_dirs,T_total,labels,redimension_train_dir,redimension_prediction_dir)
-    util.clean_wav(padding_dir)
+    ratio = 0.7
+    distribuer(ratio,padding_dir,sub_dirs,redimension_train_dir,redimension_validation_dir)

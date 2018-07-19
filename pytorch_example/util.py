@@ -14,19 +14,137 @@ from sklearn import preprocessing,metrics
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score,roc_auc_score,precision_score,f1_score,recall_score
 
-# import multiprocessing
-# import GPUtil as GPU
+from extration import parse_audio_files_mfcc,parse_audio_files_waveletPackets,parse_audio_files_rawSignal,get_cnn_mfccs,rawSignal_to_image
+from redimension import read_audio,distribuer
+from read_csv import read,date_type
+from test_wavenet import wavenet,train_wavenet
 
-'''
-def monitor_gpu():
-    usages = []
-    while True:
-       gpu = GPU.getGPUs()[0]
-       usage = gpu.load*100
-       usages.append(usage)
-       time.sleep(interval)
-    print usages
-'''
+
+
+
+
+
+
+def get_spices(read_path):
+    sub_dirs = []
+    labels = []
+    for i, f in enumerate(glob.glob(read_path + os.sep +'*')):
+        f = os.path.splitext(f)[0]
+        sub_dirs.append(f.split(os.sep)[1])
+        labels.append(f.split(os.sep)[1])
+    # print labels
+        return sub_dirs,labels
+
+
+def cut(read_path,train_csv_path,train_wav_path,redimension_train_path,redimension_validation_path,padding_path,split_ratio):
+    clean_wav(read_path)
+    clean_wav(padding_path)
+    clean_wav(redimension_train_path)
+    clean_wav(redimension_validation_path)
+
+    segProjet,segSite,segStart,duration,segLabel,segQuality = read(train_csv_path)
+    # print segProjet
+    max_duration = date_type(train_wav_path,segProjet,segSite,segStart,duration,segLabel,segQuality,read_path)
+    # print("ok")
+
+    #################  padding raw signal
+    file_ext='*.wav'
+    sub_dirs,labels = get_spices(read_path)
+
+    read_audio(read_path,sub_dirs,max_duration,padding_path,labels)
+    distribuer(split_ratio,padding_path,sub_dirs,redimension_train_path,redimension_validation_path)
+    # clean_wav(args.read_path)
+    # cut_padding_audio(args.padding_path,sub_dirs,args.T_total,labels,args.redimension_train_path,args.redimension_validation_path)
+    # clean_wav(args.padding_path)
+
+
+def extract(read_path,redimension_train_path,redimension_validation_path,mfcc_length,
+                    sample_size,sample_rate,length,width,image_train_path,image_validation_path):
+    print(redimension_train_path)
+    print(mfcc_length)
+    ############ lstm mfcc
+    cmd = "rm -rf feature/*"
+    sh.run(cmd)
+    file_ext='*.wav'
+    sub_dirs,labels = get_spices(read_path)
+
+    lstm_train_features_mfcc,lstm_train_labels_mfcc = parse_audio_files_mfcc(redimension_train_path,sub_dirs,file_ext,mfcc_length)
+    lstm_validation_features_mfcc,lstm_validation_labels_mfcc = parse_audio_files_mfcc(redimension_validation_path,sub_dirs,file_ext,mfcc_length)
+
+    np.savetxt("feature/lstm_train_features_mfcc.txt",lstm_train_features_mfcc)
+    np.savetxt("feature/lstm_train_labels_mfcc.txt",lstm_train_labels_mfcc)
+    np.savetxt("feature/lstm_validation_features_mfcc.txt",lstm_validation_features_mfcc)
+    np.savetxt("feature/lstm_validation_labels_mfcc.txt",lstm_validation_labels_mfcc)
+    ############ lstm wavelet
+
+    lstm_train_features_wavelet,lstm_train_labels_wavelet = parse_audio_files_waveletPackets(redimension_train_path,sub_dirs,file_ext)
+    lstm_validation_features_wavelet,lstm_validation_labels_wavelet = parse_audio_files_waveletPackets(redimension_validation_path,sub_dirs,file_ext)
+
+    np.savetxt("feature/lstm_train_features_wavelet.txt",lstm_train_features_wavelet)
+    np.savetxt("feature/lstm_train_labels_wavelet.txt",lstm_train_labels_wavelet)
+    np.savetxt("feature/lstm_validation_features_wavelet.txt",lstm_validation_features_wavelet)
+    np.savetxt("feature/lstm_validation_labels_wavelet.txt",lstm_validation_labels_wavelet)
+    ###########  lstm raw signal
+    # sample_size=200
+    # sample_rate=100
+    lstm_train_features_rawSignal,lstm_train_labels_rawSignal = parse_audio_files_rawSignal(redimension_train_path,sub_dirs,file_ext,sample_size,sample_rate)
+    lstm_validation_features_rawSignal,lstm_validation_labels_rawSignal = parse_audio_files_rawSignal(redimension_train_path,sub_dirs,file_ext,sample_size,sample_rate)
+
+    np.savetxt("feature/lstm_train_features_rawSignal.txt",lstm_train_features_rawSignal)
+    np.savetxt("feature/lstm_train_labels_rawSignal.txt",lstm_train_labels_rawSignal)
+    np.savetxt("feature/lstm_validation_features_rawSignal.txt",lstm_validation_features_rawSignal)
+    np.savetxt("feature/lstm_validation_labels_rawSignal.txt",lstm_validation_labels_rawSignal)
+
+    ################   cnn mfcc
+    # length = 28
+    # width = 28
+    cnn_train_features_mfcc,cnn_train_labels_mfcc = get_cnn_mfccs(redimension_train_path,sub_dirs,file_ext,length,width)
+    cnn_validation_features_mfcc,cnn_validation_labels_mfcc = get_cnn_mfccs(redimension_validation_path,sub_dirs,file_ext,length,width)
+    # Write the array to disk
+    with file('feature/cnn_train_features_mfcc.txt', 'w') as outfile:
+        outfile.write('# Array shape: {0}\n'.format(cnn_train_features_mfcc.shape))
+        for data_slice in cnn_train_features_mfcc:
+            np.savetxt(outfile, data_slice, fmt='%-7.6f')
+            # Writing out a break to indicate different slices...
+            outfile.write('# New slice\n')
+    np.savetxt("feature/cnn_train_labels_mfcc.txt",cnn_train_labels_mfcc)
+
+    with file('feature/cnn_validation_features_mfcc.txt', 'w') as outfile:
+        outfile.write('# Array shape: {0}\n'.format(cnn_validation_features_mfcc.shape))
+        for data_slice in cnn_validation_features_mfcc:
+            np.savetxt(outfile, data_slice, fmt='%-7.6f')
+            # Writing out a break to indicate different slices...
+            outfile.write('# New slice\n')
+    np.savetxt("feature/cnn_validation_labels_mfcc.txt",cnn_validation_labels_mfcc)
+
+    ############ cnn raw signal
+    clean_image(image_train_path)
+    clean_image(image_validation_path)
+    rawSignal_to_image(redimension_train_path,sub_dirs,file_ext,image_train_path)
+    rawSignal_to_image(redimension_validation_path,sub_dirs,file_ext,image_validation_path)
+
+    ########### wavenet mfcc
+    net,rec_fields,max_size = wavenet()
+
+    wavenet_train_features_mfcc,wavenet_train_labels_mfcc = parse_audio_files_mfcc(redimension_train_path,sub_dirs,file_ext,max_size)
+    wavenet_validation_features_mfcc,wavenet_validation_labels_mfcc = parse_audio_files_mfcc(redimension_validation_path,sub_dirs,file_ext,max_size)
+
+    np.savetxt("feature/wavenet_train_features_mfcc.txt",wavenet_train_features_mfcc)
+    np.savetxt("feature/wavenet_train_labels_mfcc.txt",wavenet_train_labels_mfcc)
+    np.savetxt("feature/wavenet_validation_features_mfcc.txt",wavenet_validation_features_mfcc)
+    np.savetxt("feature/wavenet_validation_labels_mfcc.txt",wavenet_validation_labels_mfcc)
+
+    ########### wavenet raw signal
+    wavenet_train_features_rawSignal,wavenet_train_labels_rawSignal = parse_audio_files_rawSignal(redimension_train_path,
+                                                            sub_dirs,file_ext,max_size,sample_rate)
+    wavenet_validation_features_rawSignal,wavenet_validation_labels_rawSignal = parse_audio_files_rawSignal(redimension_validation_path,
+                                                            sub_dirs,file_ext,max_size,sample_rate)
+
+    np.savetxt("feature/wavenet_train_features_rawSignal.txt",wavenet_train_features_rawSignal)
+    np.savetxt("feature/wavenet_train_labels_rawSignal.txt",wavenet_train_labels_rawSignal)
+    np.savetxt("feature/wavenet_validation_features_rawSignal.txt",wavenet_validation_features_rawSignal)
+    np.savetxt("feature/wavenet_validation_labels_rawSignal.txt",wavenet_validation_labels_rawSignal)
+
 
 def evaluate(prediction_labels,pred_y):
     # print prediction_labels
@@ -59,7 +177,7 @@ def write_result(loss,accuracy,precision,recall,f1,auc,training_time,features_ty
     labels_methode = ["Learning Presentation",features_type.upper()]
     num_epochs = ["Number Epochs",epochs]
     batch = ["batch size",batch_size]
-    ratio = ["train/test split",1-split_ratio]
+    ratio = ["train/test split",split_ratio]
     cross_validation = ["cross validation","Hold-out method"]
     classifier = ["Classifier",arc.upper()]
     loss = ["loss",loss]

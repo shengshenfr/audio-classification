@@ -15,11 +15,10 @@ import matplotlib.pyplot as plt
 import pylab
 
 import sh
-from read_csv import read,date_type
-from util import clean_wav,clean_image,write_result
-from redimension import read_audio, cut_padding_audio
+from util import cut,extract
+
 from initial import main
-from extration import parse_audio_files_mfcc,parse_audio_files_waveletPackets,parse_audio_files_rawSignal,get_cnn_mfccs,rawSignal_to_image
+
 
 from train_lstm import RNN,train_rnn
 from train_cnn import CNN,train_mfcc,predict_mfcc,train_rawSignal,predict_rawSignal
@@ -36,29 +35,26 @@ parser.add_argument('--train_csv_path', default='csvData/train',
                     help='path to the train csv data folder')
 parser.add_argument('--read_path', default='read',
                     help='stock cut wav files')
-parser.add_argument('--cut', default=False,
-                    help='if you excute the code at first time. please cut the raw wav by input True')
 
 ##### redimension
-parser.add_argument('--padding', default=False,
-                    help='if you excute the code at first time. please padding the raw wav by input True')
 parser.add_argument('--padding_path', default='padding',
                     help='path to stock padding audio')
-parser.add_argument('--T_total', type=int, default=4,
-                    metavar='N', help='define the max length of redimension wav')
+
 parser.add_argument('--redimension_train_path', default='redimension/train',
                     help='path to redimension train wav folder')
-parser.add_argument('--redimension_prediction_path', default='redimension/prediction',
-                    help='path to redimension train wav folder')
+parser.add_argument('--redimension_validation_path', default='redimension/validation',
+                    help='path to redimension validation wav folder')
 
+parser.add_argument('--split_ratio', type=float, default=0.7,
+                    metavar='N', help='split train/test ratio')
  #############  extract
+parser.add_argument('--prepare', default=False,
+                    help='if you excute the code at first time. please cut the raw wav and extract features by input True')
 
-parser.add_argument('--extract', default=False,
-                    help='if you excute the code at first time. please extract features by input True')
 parser.add_argument('--image_train_path', default='image/train',
                     help='path to stock train image folder')
-parser.add_argument('--image_prediction_path', default='image/prediction',
-                    help='path to stock train image folder')
+parser.add_argument('--image_validation_path', default='image/validation',
+                    help='path to stock validation image folder')
 parser.add_argument('--mfcc_length', type=int, default=13,
                     metavar='N', help='define the max length of mfcc for lstm')
 parser.add_argument('--sample_size', type=int, default=200,
@@ -90,8 +86,7 @@ parser.add_argument('--optimizer', default='adam',
 parser.add_argument('--drop_out', type=float, default=0.1,
                     metavar='N', help='dropout')
 
-parser.add_argument('--split_ratio', type=float, default=0.3,
-                    metavar='N', help='split test/train ratio')
+
 
 
 parser.add_argument('--num_layers', type=int, default=2,
@@ -109,113 +104,15 @@ args = parser.parse_args()
 # print args.train_wav_path
 
 ########################   cut raw signal
-if args.cut:
-    clean_wav(args.read_path)
+if args.prepare:
 
-    segProjet,segSite,segStart,duration,segLabel,segQuality = read(args.train_csv_path)
-    # print segProjet
-    date_type(args.train_wav_path,segProjet,segSite,segStart,duration,segLabel,segQuality,args.read_path)
-    # print("ok")
+    cut(args.read_path,args.train_csv_path,args.train_wav_path,
+        args.redimension_train_path,args.redimension_validation_path,args.padding_path,args.split_ratio)
 
-#################  padding raw signal
-file_ext='*.wav'
-sub_dirs = []
-labels = []
-for i, f in enumerate(glob.glob(args.read_path + os.sep +'*')):
-    f = os.path.splitext(f)[0]
-    sub_dirs.append(f.split(os.sep)[1])
-    labels.append(f.split(os.sep)[1])
-print labels
+# if args.extract:
 
-if args.padding:
-    # T_total = 4
-    clean_wav(args.redimension_train_path)
-    clean_wav(args.redimension_prediction_path)
-    read_audio(args.read_path,sub_dirs,args.T_total,args.padding_path,labels)
-    clean_wav(args.read_path)
-    cut_padding_audio(args.padding_path,sub_dirs,args.T_total,labels,args.redimension_train_path,args.redimension_prediction_path)
-    clean_wav(args.padding_path)
-if args.extract:
-
-    ############ lstm mfcc
-    cmd = "rm -rf feature/*"
-    sh.run(cmd)
-
-    lstm_train_features_mfcc,lstm_train_labels_mfcc = parse_audio_files_mfcc(args.redimension_train_path,sub_dirs,file_ext,args.mfcc_length)
-    lstm_prediction_features_mfcc,lstm_prediction_labels_mfcc = parse_audio_files_mfcc(args.redimension_prediction_path,sub_dirs,file_ext,args.mfcc_length)
-
-    np.savetxt("feature/lstm_train_features_mfcc.txt",lstm_train_features_mfcc)
-    np.savetxt("feature/lstm_train_labels_mfcc.txt",lstm_train_labels_mfcc)
-    np.savetxt("feature/lstm_prediction_features_mfcc.txt",lstm_prediction_features_mfcc)
-    np.savetxt("feature/lstm_prediction_labels_mfcc.txt",lstm_prediction_labels_mfcc)
-    ############ lstm wavelet
-    lstm_train_features_wavelet,lstm_train_labels_wavelet = parse_audio_files_waveletPackets(args.redimension_train_path,sub_dirs,file_ext)
-    lstm_prediction_features_wavelet,lstm_prediction_labels_wavelet = parse_audio_files_waveletPackets(args.redimension_prediction_path,sub_dirs,file_ext)
-
-    np.savetxt("feature/lstm_train_features_wavelet.txt",lstm_train_features_wavelet)
-    np.savetxt("feature/lstm_train_labels_wavelet.txt",lstm_train_labels_wavelet)
-    np.savetxt("feature/lstm_prediction_features_wavelet.txt",lstm_prediction_features_wavelet)
-    np.savetxt("feature/lstm_prediction_labels_wavelet.txt",lstm_prediction_labels_wavelet)
-    ###########  lstm raw signal
-    # sample_size=200
-    # sample_rate=100
-    lstm_train_features_rawSignal,lstm_train_labels_rawSignal = parse_audio_files_rawSignal(args.redimension_train_path,sub_dirs,file_ext,args.sample_size,args.sample_rate)
-    lstm_prediction_features_rawSignal,lstm_prediction_labels_rawSignal = parse_audio_files_rawSignal(args.redimension_train_path,sub_dirs,file_ext,args.sample_size,args.sample_rate)
-
-    np.savetxt("feature/lstm_train_features_rawSignal.txt",lstm_train_features_rawSignal)
-    np.savetxt("feature/lstm_train_labels_rawSignal.txt",lstm_train_labels_rawSignal)
-    np.savetxt("feature/lstm_prediction_features_rawSignal.txt",lstm_prediction_features_rawSignal)
-    np.savetxt("feature/lstm_prediction_labels_rawSignal.txt",lstm_prediction_labels_rawSignal)
-
-    ################   cnn mfcc
-    # length = 28
-    # width = 28
-    cnn_train_features_mfcc,cnn_train_labels_mfcc = get_cnn_mfccs(args.redimension_train_path,sub_dirs,file_ext,args.length,args.width)
-    cnn_prediction_features_mfcc,cnn_prediction_labels_mfcc = get_cnn_mfccs(args.redimension_prediction_path,sub_dirs,file_ext,args.length,args.width)
-    # Write the array to disk
-    with file('feature/cnn_train_features_mfcc.txt', 'w') as outfile:
-        outfile.write('# Array shape: {0}\n'.format(cnn_train_features_mfcc.shape))
-        for data_slice in cnn_train_features_mfcc:
-            np.savetxt(outfile, data_slice, fmt='%-7.6f')
-            # Writing out a break to indicate different slices...
-            outfile.write('# New slice\n')
-    np.savetxt("feature/cnn_train_labels_mfcc.txt",cnn_train_labels_mfcc)
-
-    with file('feature/cnn_prediction_features_mfcc.txt', 'w') as outfile:
-        outfile.write('# Array shape: {0}\n'.format(cnn_prediction_features_mfcc.shape))
-        for data_slice in cnn_prediction_features_mfcc:
-            np.savetxt(outfile, data_slice, fmt='%-7.6f')
-            # Writing out a break to indicate different slices...
-            outfile.write('# New slice\n')
-    np.savetxt("feature/cnn_prediction_labels_mfcc.txt",cnn_prediction_labels_mfcc)
-
-    ############ cnn raw signal
-    clean_image(args.image_train_path)
-    clean_image(args.image_prediction_path)
-    rawSignal_to_image(args.redimension_train_path,sub_dirs,file_ext,args.image_train_path)
-    rawSignal_to_image(args.redimension_prediction_path,sub_dirs,file_ext,args.image_prediction_path)
-
-    ########### wavenet mfcc
-    net,rec_fields,max_size = wavenet()
-
-    wavenet_train_features_mfcc,wavenet_train_labels_mfcc = parse_audio_files_mfcc(args.redimension_train_path,sub_dirs,file_ext,max_size)
-    wavenet_prediction_features_mfcc,wavenet_prediction_labels_mfcc = parse_audio_files_mfcc(args.redimension_prediction_path,sub_dirs,file_ext,max_size)
-
-    np.savetxt("feature/wavenet_train_features_mfcc.txt",wavenet_train_features_mfcc)
-    np.savetxt("feature/wavenet_train_labels_mfcc.txt",wavenet_train_labels_mfcc)
-    np.savetxt("feature/wavenet_prediction_features_mfcc.txt",wavenet_prediction_features_mfcc)
-    np.savetxt("feature/wavenet_prediction_labels_mfcc.txt",wavenet_prediction_labels_mfcc)
-
-    ########### wavenet raw signal
-    wavenet_train_features_rawSignal,wavenet_train_labels_rawSignal = parse_audio_files_rawSignal(args.redimension_train_path,
-                                                            sub_dirs,file_ext,max_size,args.sample_rate)
-    wavenet_prediction_features_rawSignal,wavenet_prediction_labels_rawSignal = parse_audio_files_rawSignal(args.redimension_prediction_path,
-                                                            sub_dirs,file_ext,max_size,args.sample_rate)
-
-    np.savetxt("feature/wavenet_train_features_rawSignal.txt",wavenet_train_features_rawSignal)
-    np.savetxt("feature/wavenet_train_labels_rawSignal.txt",wavenet_train_labels_rawSignal)
-    np.savetxt("feature/wavenet_prediction_features_rawSignal.txt",wavenet_prediction_features_rawSignal)
-    np.savetxt("feature/wavenet_prediction_labels_rawSignal.txt",wavenet_prediction_labels_rawSignal)
+    extract(args.read_path,args.redimension_train_path,args.redimension_validation_path,args.mfcc_length,
+                        args.sample_size,args.sample_rate,args.length,args.width,args.image_train_path,args.image_validation_path)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~Loading data
 
