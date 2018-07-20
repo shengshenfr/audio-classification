@@ -19,11 +19,12 @@ from redimension import read_audio,distribuer
 from read_csv import read,date_type
 from test_wavenet import wavenet,train_wavenet
 
+from train_lstm import RNN,train_rnn
+from train_cnn import CNN,train_mfcc,train_rawSignal,predict_rawSignal
 
-
-
-
-
+import torch
+import torch.optim as optim
+from torch import nn
 
 def get_spices(read_path):
     sub_dirs = []
@@ -33,7 +34,7 @@ def get_spices(read_path):
         sub_dirs.append(f.split(os.sep)[1])
         labels.append(f.split(os.sep)[1])
     # print labels
-        return sub_dirs,labels
+    return sub_dirs,labels
 
 
 def cut(read_path,train_csv_path,train_wav_path,redimension_train_path,redimension_validation_path,padding_path,split_ratio):
@@ -66,8 +67,9 @@ def extract(read_path,redimension_train_path,redimension_validation_path,mfcc_le
     cmd = "rm -rf feature/*"
     sh.run(cmd)
     file_ext='*.wav'
-    sub_dirs,labels = get_spices(read_path)
-
+    # sub_dirs,labels = get_spices(read_path)
+    sub_dirs = ['Bm','Eg']
+    print(sub_dirs)
     lstm_train_features_mfcc,lstm_train_labels_mfcc = parse_audio_files_mfcc(redimension_train_path,sub_dirs,file_ext,mfcc_length)
     lstm_validation_features_mfcc,lstm_validation_labels_mfcc = parse_audio_files_mfcc(redimension_validation_path,sub_dirs,file_ext,mfcc_length)
 
@@ -146,6 +148,181 @@ def extract(read_path,redimension_train_path,redimension_validation_path,mfcc_le
     np.savetxt("feature/wavenet_validation_labels_rawSignal.txt",wavenet_validation_labels_rawSignal)
 
 
+def train_model(features_type,arc,hidden_size,num_layers,num_classes,drop_out,lr,batch_size,epochs,
+                    split_ratio,length,width,optimizer,image_train_path,image_validation_path):
+
+    if features_type == 'mfcc' and arc =='lstm':
+        # train_features,train_labels = parse_audio_files_mfcc(redimension_train_path,sub_dirs,file_ext,mfcc_length)
+        # validation_features,validation_labels = parse_audio_files_mfcc(redimension_validation_path,sub_dirs,file_ext,mfcc_length)
+        print("begin to train mfcc by lstm")
+        train_features = np.loadtxt("feature/lstm_train_features_mfcc.txt")
+        train_labels = np.loadtxt("feature/lstm_train_labels_mfcc.txt")
+        validation_features = np.loadtxt("feature/lstm_validation_features_mfcc.txt")
+        validation_labels = np.loadtxt("feature/lstm_validation_labels_mfcc.txt")
+
+        input_size = train_features.shape[1]
+        # print("input size is ",input_size)
+        model = RNN(input_size,hidden_size,num_layers, num_classes,drop_out)
+
+        # define optimizer and loss function
+        optim,loss_func = optimizer_lossFunc(optimizer,model,lr)
+
+
+        loss,model,accuracy,precision,recall,f1,auc,training_time = train_rnn(train_features,train_labels,validation_features,validation_labels,model,
+                                            optim,loss_func,input_size,batch_size,epochs)
+
+        torch.save(model, 'model/mfcc_model_lstm.pkl')
+        # print type(training_time)
+        print ("training time " ,training_time)
+        write_result(loss,accuracy,precision,recall,f1,auc,training_time,features_type,epochs,batch_size,split_ratio,arc)
+
+    elif features_type == 'wavelet'and arc =='lstm':
+        # train_features,train_labels = parse_audio_files_waveletPackets(args.redimension_train_path,sub_dirs,file_ext)
+        # validation_features,validation_labels = parse_audio_files_waveletPackets(args.redimension_validation_path,sub_dirs,file_ext)
+        train_features = np.loadtxt("feature/lstm_train_features_wavelet.txt")
+        train_labels = np.loadtxt("feature/lstm_train_labels_wavelet.txt")
+        validation_features = np.loadtxt("feature/lstm_validation_features_wavelet.txt")
+        validation_labels = np.loadtxt("feature/lstm_validation_labels_wavelet.txt")
+
+        input_size = train_features.shape[1]
+        model = RNN(input_size,hidden_size, num_layers, num_classes,drop_out)
+
+        # define optimizer and loss function
+        optim,loss_func = optimizer_lossFunc(optimizer,model,lr)
+
+
+        loss,model,accuracy,precision,recall,f1,auc,training_time = train_rnn(train_features,train_labels,validation_features,validation_labels,model,
+                                            optim,loss_func,input_size,batch_size,epochs)
+
+        torch.save(model, 'model/wavelet_model_lstm.pkl')
+        print ("training time " ,training_time)
+        write_result(loss,accuracy,precision,recall,f1,auc,training_time,features_type,epochs,batch_size,split_ratio,arc)
+
+    elif features_type == 'raw_signal'and arc =='lstm':
+        # train_features,train_labels = parse_audio_files_rawSignal(args.redimension_train_path,sub_dirs,file_ext,args.sample_size,args.sample_rate)
+        # validation_features,validation_labels = parse_audio_files_rawSignal(args.redimension_train_path,sub_dirs,file_ext,args.sample_size,args.sample_rate
+        train_features = np.loadtxt("feature/lstm_train_features_rawSignal.txt")
+        train_labels = np.loadtxt("feature/lstm_train_labels_rawSignal.txt")
+        validation_features = np.loadtxt("feature/lstm_validation_features_rawSignal.txt")
+        validation_labels = np.loadtxt("feature/lstm_validation_labels_rawSignal.txt")
+
+        input_size = train_features.shape[1]
+        # print input_size
+        model = RNN(input_size,hidden_size, num_layers, num_classes,drop_out)
+
+        # define optimizer and loss function
+        optim,loss_func = optimizer_lossFunc(optimizer,model,lr)
+
+
+        loss,model,accuracy,precision,recall,f1,auc,training_time = train_rnn(train_features,train_labels,validation_features,validation_labels,model,
+                                            optim,loss_func,input_size,batch_size,epochs)
+        torch.save(model, 'model/rawSignal_model_lstm.pkl')
+        print ("training time " ,training_time)
+        write_result(loss,accuracy,precision,recall,f1,auc,training_time,features_type,epochs,batch_size,split_ratio,arc)
+
+    elif features_type == 'mfcc'and arc =='cnn':
+        # train_features,train_labels = get_cnn_mfccs(args.redimension_train_path,sub_dirs,file_ext,args.length,args.width)
+        # validation_features,validation_labels = get_cnn_mfccs(args.redimension_validation_path,sub_dirs,file_ext,args.length,args.width)
+        train_features = np.loadtxt("feature/cnn_train_features_mfcc.txt")
+        print train_features.shape[0]
+        train_features = train_features.reshape(train_features.shape[0]/length,length,width)
+        train_labels = np.loadtxt("feature/cnn_train_labels_mfcc.txt")
+
+        validation_features = np.loadtxt("feature/cnn_validation_features_mfcc.txt")
+        validation_features = validation_features.reshape(validation_features.shape[0]/length,length,width)
+        validation_labels = np.loadtxt("feature/cnn_validation_labels_mfcc.txt")
+
+
+        in_channels = 1
+        model = CNN(num_classes,drop_out,length,width,in_channels)
+
+        # define optimizer and loss function
+        optim,loss_func = optimizer_lossFunc(optimizer,model,lr)
+
+
+        loss,training_time,model,accuracy,precision,recall,f1,auc = train_mfcc(train_features,train_labels,validation_features,
+                                                        validation_labels,model,optim,loss_func,batch_size,epochs)
+
+        torch.save(model, 'model/mfcc_model_cnn.pkl')
+        print ("training time " ,training_time)
+        write_result(loss,accuracy,precision,recall,f1,auc,training_time,features_type,epochs,batch_size,split_ratio,arc)
+
+    elif features_type == 'raw_signal'and arc =='cnn':
+        # clean_image(args.image_train_path)
+        # clean_image(args.image_validation_path)
+        # rawSignal_to_image(args.redimension_train_path,sub_dirs,file_ext,args.image_train_path)
+        # rawSignal_to_image(args.redimension_validation_path,sub_dirs,file_ext,args.image_validation_path)
+
+        in_channels = 3
+        model = CNN(num_classes,drop_out,length,width,in_channels)
+
+        # define optimizer and loss function
+        optim,loss_func = optimizer_lossFunc(optimizer,model,lr)
+
+        loss,training_time  = train_rawSignal(image_train_path,model,
+                                            optim,loss_func,batch_size,epochs,length,width)
+        _,model,accuracy,precision,recall,f1,auc = predict_rawSignal(image_validation_path,model,batch_size,length,width)
+        torch.save(model, 'model/rawSignal_model_cnn.pkl')
+        print ("training time " ,training_time)
+        write_result(loss,accuracy,precision,recall,f1,auc,training_time,features_type,epochs,batch_size,split_ratio,arc)
+
+
+    elif features_type == 'mfcc'and arc =='wavenet':
+        ########### wavenet mfcc
+        model,rec_fields,_ = wavenet()
+
+        # wavenet_train_features_mfcc,wavenet_train_labels_mfcc = parse_audio_files_mfcc(args.redimension_train_path,sub_dirs,file_ext,max_size)
+        # wavenet_validation_features_mfcc,wavenet_validation_labels_mfcc = parse_audio_files_mfcc(args.redimension_validation_path,sub_dirs,file_ext,max_size)
+
+        train_features = np.loadtxt("feature/wavenet_train_features_mfcc.txt")
+        train_labels = np.loadtxt("feature/wavenet_train_labels_mfcc.txt")
+        validation_features = np.loadtxt("feature/wavenet_validation_features_mfcc.txt")
+        validation_labels = np.loadtxt("feature/wavenet_validation_labels_mfcc.txt")
+
+        # define optimizer and loss function
+        optim,loss_func = optimizer_lossFunc(optimizer,model,lr)
+
+        loss,accuracy,precision,recall,f1,auc,training_time = train_wavenet(model,rec_fields,train_features,train_labels,validation_features,validation_labels,
+                                                optim,loss_func,batch_size,epochs)
+        print ("training time " ,training_time)
+        write_result(loss,accuracy,precision,recall,f1,auc,training_time,features_type,epochs,batch_size,split_ratio,arc)
+
+    elif features_type == 'raw_signal'and arc =='wavenet':
+        ########### wavenet raw signal
+        # wavenet_train_features_rawSignal,wavenet_train_labels_rawSignal = parse_audio_files_rawSignal(args.redimension_train_path,
+                                                                # sub_dirs,file_ext,max_size,args.sample_rate)
+        # wavenet_validation_features_rawSignal,wavenet_validation_labels_rawSignal = parse_audio_files_rawSignal(args.redimension_validation_path,
+                                                                # sub_dirs,file_ext,max_size,args.sample_rate)
+
+        train_features = np.loadtxt("feature/wavenet_train_features_rawSignal.txt")
+        train_labels = np.loadtxt("feature/wavenet_train_labels_rawSignal.txt")
+        validation_features = np.loadtxt("feature/wavenet_validation_features_rawSignal.txt")
+        validation_labels = np.loadtxt("feature/wavenet_validation_labels_rawSignal.txt")
+
+        model,rec_fields,_ = wavenet()
+
+        # define optimizer and loss function
+        optim,loss_func = optimizer_lossFunc(optimizer,model,lr)
+
+        loss,accuracy,precision,recall,f1,auc,training_time  = train_wavenet(model,rec_fields,train_features,train_labels,validation_features,validation_labels,
+                                                optim,loss_func,batch_size,epochs)
+        print ("training time " ,training_time)
+        write_result(loss,accuracy,precision,recall,f1,auc,training_time,features_type,epochs,batch_size,split_ratio,arc)
+
+def optimizer_lossFunc(optimizer,model,lr):
+
+    if optimizer.lower() == 'adam':
+        optimizer = optim.Adam(model.parameters(), lr=lr)
+    elif optimizer.lower() == 'sgd':
+        optimizer = optim.SGD(model.parameters(), lr=lr,
+                              momentum=0.9)
+    else:
+        optimizer = optim.SGD(model.parameters(), lr=lr,
+                              momentum=0.9)
+    loss_func = nn.CrossEntropyLoss()
+
+    return optimizer,loss_func
+
 def evaluate(prediction_labels,pred_y):
     # print prediction_labels
     # print pred_y
@@ -204,25 +381,25 @@ def write_result(loss,accuracy,precision,recall,f1,auc,training_time,features_ty
     writer.writerow(training_time)
     csvFile.close()
 
-
+'''
 def split_data(features,labels,split_ratio):
     # random train and test sets.
     train_x, test_x, train_y, test_y = train_test_split(features, labels, test_size = split_ratio, random_state=0)
 
     #print np.random.rand(len(train_features))
-    '''
-    train_test_split = np.random.rand(len(train_features)) < split_ratio
-    #print train_test_split
-    train_x = train_features[train_test_split]
-    train_y = train_labels[train_test_split]
-    test_x = train_features[~train_test_split]
-    test_y = train_labels[~train_test_split]
 
+    # train_test_split = np.random.rand(len(train_features)) < split_ratio
+    # #print train_test_split
+    # train_x = train_features[train_test_split]
+    # train_y = train_labels[train_test_split]
+    # test_x = train_features[~train_test_split]
+    # test_y = train_labels[~train_test_split]
+    #
+    #
+    # #print train_x.shape,train_y.
 
-    #print train_x.shape,train_y.
-    '''
     return train_x,train_y,test_x,test_y
-
+'''
 
 def clean_wav(file_dir):
     for i, f in enumerate(glob.glob(file_dir + os.sep +'*')):

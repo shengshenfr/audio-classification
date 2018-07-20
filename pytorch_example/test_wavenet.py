@@ -33,22 +33,22 @@ def wavenet():
     return net,rec_fields,max_size
 
 
-def train_wavenet(net,rec_fields,train_features,train_labels,prediction_features,prediction_labels,
-                                        optimizer,loss_func,batch_size,epochs,split_ratio):
+def train_wavenet(net,rec_fields,train_features,train_labels,validation_features,validation_labels,
+                                        optimizer,loss_func,batch_size,epochs):
 
-    train_x,train_y,test_x,test_y = util.split_data(train_features,train_labels,split_ratio)
-    x, y = torch.from_numpy(train_x).float(), torch.from_numpy(train_y).long()
+    # train_x,train_y,test_x,test_y = util.split_data(train_features,train_labels,split_ratio)
+    x, y = torch.from_numpy(train_features).float(), torch.from_numpy(train_labels).long()
     train_dataset = Data.TensorDataset(x, y)
     train_loader = Data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True, num_workers=2,)
 
 
-    test_x1, test_y1 = torch.from_numpy(test_x).float(), torch.from_numpy(test_y).long()
-    test_x = Variable(test_x1, requires_grad=False).type(torch.FloatTensor)
-    test_y = test_y1.numpy().squeeze() # covert to numpy array
+    # test_x1, test_y1 = torch.from_numpy(test_x).float(), torch.from_numpy(test_y).long()
+    # test_x = Variable(test_x1, requires_grad=False).type(torch.FloatTensor)
+    # test_y = test_y1.numpy().squeeze() # covert to numpy array
 
-    prediction_features1, prediction_labels1 = torch.from_numpy(prediction_features).float(), torch.from_numpy(prediction_labels).long()
-    prediction_features = Variable(prediction_features1, requires_grad=False).type(torch.FloatTensor)
-    prediction_labels = prediction_labels1.numpy().squeeze() # covert to numpy array
+    validation_features, validation_labels = torch.from_numpy(validation_features).float(), torch.from_numpy(validation_labels).long()
+    validation_features = Variable(validation_features, requires_grad=False).type(torch.FloatTensor)
+    validation_labels = validation_labels.numpy().squeeze() # covert to numpy array
 
     start_time = time.time()
 
@@ -72,20 +72,20 @@ def train_wavenet(net,rec_fields,train_features,train_labels,prediction_features
             global_epoch_loss += loss.data[0]
 
             if step % 50 == 0:
-                test_output = net(test_x.view(-1,IN_CHANNELS,rec_fields+1))
+                test_output = net(validation_features.view(-1,IN_CHANNELS,rec_fields+1))
                 pred_y = torch.max(test_output, 1)[1].data.numpy().squeeze()
-                accuracy = sum(pred_y == test_y) / float(test_y.size)
+                accuracy = sum(pred_y == validation_labels) / float(validation_labels.size)
                 print('train loss: %.4f' % loss.data[0], '| test accuracy: %.4f' % accuracy)
 
     end_time = time.time()
     training_time = end_time-start_time
 
-    pre_output = net(prediction_features.view(-1,IN_CHANNELS,rec_fields+1))
+    pre_output = net(validation_features.view(-1,IN_CHANNELS,rec_fields+1))
     pred_y = torch.max(pre_output, 1)[1].data.numpy().squeeze()
     # accuracy = sum(pred_y == test_y) / float(test_y.size)
     # print (metrics.classification_report(prediction_labels, pred_y))
-    accuracy,precision,recall,f1,auc = util.evaluate(prediction_labels,pred_y)
-    loss = float(global_epoch_loss.numpy())/float(train_x.size)
+    accuracy,precision,recall,f1,auc = util.evaluate(validation_labels,pred_y)
+    loss = float(global_epoch_loss.numpy())/float(train_features.size)
     loss = "{:.4f}".format(loss)
     # print loss
     training_time = "{:.4f} s".format(training_time)

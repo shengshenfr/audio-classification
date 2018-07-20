@@ -5,7 +5,6 @@ import glob
 import numpy as np
 import math
 import time
-from util import split_data,evaluate
 from extration import *
 
 import torch
@@ -15,7 +14,7 @@ from torch.nn import init
 import torch.utils.data as Data
 import torch.nn.functional as F
 from sklearn import metrics
-
+import util
 # import multiprocessing
 # import GPUtil as GPU
 
@@ -44,10 +43,10 @@ class RNN(nn.Module):
         return out
 
 
-def train_rnn(train_features,train_labels,prediction_features,prediction_labels,model,optimizer,loss_func,input_size,batch_size,epochs,split_ratio):
+def train_rnn(train_features,train_labels,validation_features,validation_labels,model,optimizer,loss_func,input_size,batch_size,epochs):
 
-    train_x,train_y,test_x,test_y = split_data(train_features,train_labels,split_ratio)
-    x, y = torch.from_numpy(train_x).float(), torch.from_numpy(train_y).long()
+    # train_x,train_y,test_x,test_y = split_data(train_features,train_labels,split_ratio)
+    x, y = torch.from_numpy(train_features).float(), torch.from_numpy(train_labels).long()
     train_dataset = Data.TensorDataset(x, y)
     train_loader = Data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True, num_workers=2,)
     #print("train x is ",train_x)
@@ -56,14 +55,14 @@ def train_rnn(train_features,train_labels,prediction_features,prediction_labels,
     # print x_temp.shape
     # x, y = Variable(torch.Tensor(x_temp)), Variable(torch.LongTensor(train_y))
 
-    test_x1, test_y1 = torch.from_numpy(test_x).float(), torch.from_numpy(test_y).long()
-    test_x = Variable(test_x1, requires_grad=False).type(torch.FloatTensor)
-    test_y = test_y1.numpy().squeeze() # covert to numpy array
+    # test_x1, test_y1 = torch.from_numpy(test_x).float(), torch.from_numpy(test_y).long()
+    # test_x = Variable(test_x1, requires_grad=False).type(torch.FloatTensor)
+    # test_y = test_y1.numpy().squeeze() # covert to numpy array
 
 
-    prediction_features1, prediction_labels1 = torch.from_numpy(prediction_features).float(), torch.from_numpy(prediction_labels).long()
-    prediction_features = Variable(prediction_features1, requires_grad=False).type(torch.FloatTensor)
-    prediction_labels = prediction_labels1.numpy().squeeze() # covert to numpy array
+    validation_features1, validation_labels1 = torch.from_numpy(validation_features).float(), torch.from_numpy(validation_labels).long()
+    validation_features = Variable(validation_features1, requires_grad=False).type(torch.FloatTensor)
+    validation_labels = validation_labels1.numpy().squeeze() # covert to numpy array
 
     # p = multiprocessing.Process(target = monitor_gpu)
     # p.start()
@@ -88,26 +87,26 @@ def train_rnn(train_features,train_labels,prediction_features,prediction_labels,
             global_epoch_loss += loss.data[0]
 
             if step % 20 == 0:
-                test_output = model(test_x.view(-1,1,input_size))
+                test_output = model(validation_features.view(-1,1,input_size))
 
                 pred_y = torch.max(test_output, 1)[1].data.numpy().squeeze()
 
-                accuracy = sum(pred_y == test_y) / float(test_y.size)
+                accuracy = sum(pred_y == validation_labels) / float(validation_labels.size)
                 print('Epoch: ', epoch, '| train loss: %.4f' % loss.data[0], '| test accuracy: %.4f' % accuracy)
 
     end_time = time.time()
     training_time = end_time-start_time
     # p.terminate()
-    pre_output = model(prediction_features.view(-1,1,input_size))
+    pre_output = model(validation_features.view(-1,1,input_size))
 
     pred_y = torch.max(pre_output, 1)[1].data.numpy().squeeze()
     # accuracy = sum(pred_y == test_y) / float(test_y.size)
 
-    accuracy,precision,recall,f1,auc = evaluate(prediction_labels,pred_y)
+    accuracy,precision,recall,f1,auc = util.evaluate(validation_labels,pred_y)
     # print float(global_epoch_loss.numpy())
     # print train_x.size
     # print train_x.shape
-    loss = float(global_epoch_loss.numpy())/float(train_x.size)
+    loss = float(global_epoch_loss.numpy())/float(train_features.size)
     loss = "{:.4f}".format(loss)
     # print loss
     training_time = "{:.4f} s".format(training_time)

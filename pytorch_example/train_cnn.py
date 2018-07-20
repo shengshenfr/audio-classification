@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 import pylab
 
 import sh
-from util import split_data,evaluate
+import util
 
 
 
@@ -64,22 +64,24 @@ class CNN(nn.Module):
 
 
 
-def train_mfcc(train_features,train_labels,model,
-                                    optimizer,loss_func,batch_size,epochs,split_ratio):
+def train_mfcc(train_features,train_labels,validation_features,validation_labels,model,
+                                    optimizer,loss_func,batch_size,epochs):
     # print('Loading data...')
-    train_x,train_y,test_x,test_y = split_data(train_features,train_labels,split_ratio)
-    print train_x.shape
+    # train_x,train_y,test_x,test_y = split_data(train_features,train_labels,split_ratio)
+    # print train_x.shape
 
-    x, y = torch.from_numpy(train_x).float(), torch.from_numpy(train_y).long()
+    x, y = torch.from_numpy(train_features).float(), torch.from_numpy(train_labels).long()
 
     train_dataset = Data.TensorDataset(x, y)
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=batch_size, shuffle=True,
     num_workers=20)
 
-    test_x, test_y = torch.from_numpy(test_x).float(), torch.from_numpy(test_y).long()
-    print test_x.shape
-    test_x = Variable(torch.unsqueeze(test_x, dim=1), requires_grad=False)
+    # test_x, test_y = torch.from_numpy(test_x).float(), torch.from_numpy(test_y).long()
+    # print test_x.shape
+    # test_x = Variable(torch.unsqueeze(test_x, dim=1), requires_grad=False)
+    validation_x, validation_y = torch.from_numpy(validation_features).float(), torch.from_numpy(validation_labels).long()
+    validation_x = Variable(torch.unsqueeze(validation_x, dim=1), requires_grad=False)
 
     start_time = time.time()
 
@@ -101,9 +103,9 @@ def train_mfcc(train_features,train_labels,model,
             optimizer.step()                # apply gradients
             global_epoch_loss += loss.data[0]
             if step % 50 == 0:
-                test_output, last_layer = model(test_x)
+                test_output, last_layer = model(validation_x)
                 pred_y = torch.max(test_output, 1)[1].data.squeeze()
-                accuracy = sum(pred_y.numpy() == test_y.numpy()) / float(test_y.size(0))
+                accuracy = sum(pred_y.numpy() == validation_y.numpy()) / float(validation_y.size(0))
                 print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tAccuracy: {:.4f}%'.format(
                     epoch, step * len(b_x), len(train_loader.dataset), 100.* step / len(train_loader), loss.data[0],accuracy))
         loss = global_epoch_loss / len(train_loader.dataset)
@@ -113,16 +115,7 @@ def train_mfcc(train_features,train_labels,model,
     training_time = end_time-start_time
     training_time = "{:.4f} s".format(training_time)
 
-    return loss,training_time
-
-
-
-def predict_mfcc(prediction_features,prediction_labels,model):
-
-    prediction_x, test_y = torch.from_numpy(prediction_features).float(), torch.from_numpy(prediction_labels).long()
-    prediction_x = Variable(torch.unsqueeze(prediction_x, dim=1), requires_grad=False)
-
-    pred_output, last_layer = model(prediction_x)
+    pred_output, last_layer = model(validation_x)
     # print test_output
     pred_y = torch.max(pred_output, 1)[1].data.squeeze()
     # print test_y.size(0)
@@ -135,9 +128,9 @@ def predict_mfcc(prediction_features,prediction_labels,model):
     # pre_output,_ = cnn(test_x)
     # pred_y = torch.max(pre_output, 1)[1].data.numpy().squeeze()
     # print (metrics.classification_report(test_y.numpy(), pred_y))
-    accuracy,precision,recall,f1,auc = evaluate(prediction_labels,pred_y)
-    return model,accuracy,precision,recall,f1,auc
+    accuracy,precision,recall,f1,auc = util.evaluate(validation_labels,pred_y)
 
+    return loss,training_time,model,accuracy,precision,recall,f1,auc
 
 
 def train_rawSignal(image_train_path,model,optimizer,loss_func,batch_size,epochs,length,width):
@@ -215,5 +208,5 @@ def predict_rawSignal(image_test_path,model,batch_size,length,width):
     # print len(test_loader.dataset)
     # print float(correct) /len(test_loader.dataset)
     # print (metrics.classification_report(test_y, pred_y))
-    accuracy,precision,recall,f1,auc = evaluate(test_y, pred_y)
+    accuracy,precision,recall,f1,auc = util.evaluate(test_y, pred_y)
     return float(correct) /len(test_loader.dataset),model,accuracy,precision,recall,f1,auc
