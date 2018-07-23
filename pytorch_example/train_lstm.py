@@ -102,7 +102,7 @@ def train_rnn(train_features,train_labels,validation_features,validation_labels,
     pred_y = torch.max(pre_output, 1)[1].data.numpy().squeeze()
     # accuracy = sum(pred_y == test_y) / float(test_y.size)
 
-    accuracy,precision,recall,f1,auc = util.evaluate(validation_labels,pred_y)
+    accuracy,precision,recall,f1 = util.evaluate(validation_labels,pred_y)
     # print float(global_epoch_loss.numpy())
     # print train_x.size
     # print train_x.shape
@@ -111,4 +111,4 @@ def train_rnn(train_features,train_labels,validation_features,validation_labels,
     # print loss
     training_time = "{:.4f} s".format(training_time)
 
-    return loss,model,accuracy,precision,recall,f1,auc,training_time
+    return loss,model,accuracy,precision,recall,f1,training_time

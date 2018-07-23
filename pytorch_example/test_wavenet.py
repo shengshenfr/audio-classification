@@ -62,8 +62,8 @@ def train_wavenet(net,rec_fields,train_features,train_labels,validation_features
             output = net(b_x)
             # print ("b_y",b_y.shape)
             # print ("output",output.shape)
-            # print b_y.reshape(1,-1).shape
-            # print b_y.reshape(1,-1)
+            # print (b_y.reshape(1,-1).shape)
+            # print (b_y.reshape(1,-1))
             loss = loss_func(output, b_y.reshape(b_y.shape[0],-1))   # cross entropy loss
             optimizer.zero_grad()           # clear gradients for this training step
             loss.backward()                 # backpropagation, compute gradients
@@ -84,10 +84,10 @@ def train_wavenet(net,rec_fields,train_features,train_labels,validation_features
     pred_y = torch.max(pre_output, 1)[1].data.numpy().squeeze()
     # accuracy = sum(pred_y == test_y) / float(test_y.size)
     # print (metrics.classification_report(prediction_labels, pred_y))
-    accuracy,precision,recall,f1,auc = util.evaluate(validation_labels,pred_y)
+    accuracy,precision,recall,f1 = util.evaluate(validation_labels,pred_y)
     loss = float(global_epoch_loss.numpy())/float(train_features.size)
     loss = "{:.4f}".format(loss)
-    # print loss
+    # print (loss)
     training_time = "{:.4f} s".format(training_time)
 
-    return loss,accuracy,precision,recall,f1,auc,training_time
+    return loss,accuracy,precision,recall,f1,training_time

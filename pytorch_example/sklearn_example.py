@@ -14,30 +14,22 @@ from collections import Iterable
 import hmmlearn.hmm
 import matplotlib.pyplot as plt
 
-from util import evaluate
-import time
+import util
+# import time
 
 def train_svm(features_train,labels_train, svm_best_parameter,filename):
-    start_time = time.time()
     clf = svm.SVC(C = svm_best_parameter,  probability = True)
     clf.fit(features_train,labels_train)
     joblib.dump(clf, filename)
-    end_time = time.time()
-    training_time = end_time-start_time
-    return training_time
-
 
 def train_knn(features_train,labels_train, knn_best_parameter,filename):
-    start_time = time.time()
+
     knn = KNeighborsClassifier(n_neighbors = knn_best_parameter)
     knn.fit(features_train,labels_train)
     joblib.dump(knn, filename)
-    end_time = time.time()
-    training_time = end_time-start_time
-    return training_time
+
 
 def train_hmm(startprob, transmat, means, cov,filename):
-    start_time = time.time()
     hmm = hmmlearn.hmm.GaussianHMM(startprob.shape[0], "diag")            # hmm training
 
     hmm.startprob_ = startprob
@@ -47,9 +39,7 @@ def train_hmm(startprob, transmat, means, cov,filename):
 
     joblib.dump(hmm, filename)
 
-    end_time = time.time()
-    training_time = end_time-start_time
-    return training_time
+
 
 def get_hmm_parameter(features,labels):
     uLabel = np.unique(labels)
@@ -67,16 +57,19 @@ def get_hmm_parameter(features,labels):
     for i, u in enumerate(uLabel):
         startprob[i] = np.count_nonzero(labels == u)
     startprob = startprob / startprob.sum()                # normalize prior probabilities
-    # print ("start probobility is",startprob)
+    print ("start probobility is",startprob)
 
     # compute transition matrix:
     transmat = np.zeros((nComps, nComps))
-    print labels.shape
+    print (labels.shape)
+    print(labels)
     for i in range(labels.shape[0]-1):
         transmat[int((labels.T)[i]), int((labels.T)[i + 1])] += 1
-    for i in range(nComps):                     # normalize rows of transition matrix:
+        print(transmat)
+    for i in range(nComps):                     # normalize rows of transition matrix
         transmat[i, :] /= transmat[i, :].sum()
-    # print ("transfer matrix is",transmat)
+
+    print ("transfer matrix is",transmat)
 
     means = np.zeros((nComps, nFeatures))
     for i in range(nComps):
@@ -84,7 +77,7 @@ def get_hmm_parameter(features,labels):
         means[i, :] = np.matrix(features[np.nonzero(labels == uLabel[i])[0],:].T.mean(axis=1))
         #print("#####################")
 
-    # print ("means is",means)
+    print ("means is",means)
 
 
     cov = np.zeros((nComps, nFeatures))
@@ -92,7 +85,7 @@ def get_hmm_parameter(features,labels):
         #cov[i,:,:] = numpy.cov(features[:,numpy.nonzero(labels==uLabels[i])[0]])  # use this lines if HMM using full gaussian distributions are to be used!
         cov[i, :] = np.std(features[np.nonzero(labels == uLabel[i])[0],:].T, axis=1)
 
-    # print ("cov is",cov)
+    print ("cov is",cov)
     return startprob, transmat, means, cov
 
 
@@ -112,13 +105,14 @@ def train_evaluate_cross_validation_svm(features,labels):
     print ("all accuracies are",accuracy)
     print ("best parameter index of C is ",best_accuracy_index)
     print ("best parameter C is ",classifierParams[best_accuracy_index])
-
+    '''
     plt.plot(classifierParams, accuracy)
     plt.xlabel('Value of C for SVM')
     plt.ylabel('Cross-Validated Accuracy')
     ax = plt.axes()
     ann = ax.annotate(u"C = 18.0",xy=(18.0,0.996), xytext=(18,0.993),size=10, va="center",ha="center", bbox=dict(boxstyle='sawtooth',fc="w"), arrowprops=dict(arrowstyle="-|>", connectionstyle="angle,rad=0.4",fc='r') )
     plt.show()
+    '''
     return classifierParams[best_accuracy_index]
 
 
@@ -139,7 +133,7 @@ def train_evaluate_cross_validation_knn(features,labels):
     best_k_scores_index = np.argmax(k_scores)
     print ("best K index is ",best_k_scores_index)
     print ("best parameter K is ",k_range[best_k_scores_index])
-
+    '''
     plt.plot(k_range, k_scores)
     plt.xlabel('Value of K for KNN')
     plt.ylabel('Cross-Validated Accuracy')
@@ -147,7 +141,7 @@ def train_evaluate_cross_validation_knn(features,labels):
     ann = ax.annotate(u"K = 1",xy=(1.1,0.994), xytext=(4,0.994),size=10, va="center",ha="center", bbox=dict(boxstyle='sawtooth',fc="w"), arrowprops=dict(arrowstyle="-|>", connectionstyle="angle,rad=0.4",fc='r') )
 
     plt.show()
-
+    '''
     return k_range[best_k_scores_index]
 
 
@@ -174,39 +168,4 @@ def prediction(features_test,labels_test,model_prediction):
     # print (metrics.classification_report(labels_test, predictions))
     # print ("Confusion Matrix:")
     # print(metrics.confusion_matrix(labels_test, predictions))
-    evaluate(labels_test, predictions)
-
-
-
-if __name__ == '__main__':
-    features = np.loadtxt("feature/lstm_train_features_mfcc.txt")
-    labels = np.loadtxt("feature/lstm_train_labels_mfcc.txt")
-
-    # print ("features are ",features)
-    # print ("labels are ",labels)
-    features_train, features_test, labels_train, labels_test = train_test_split(features, labels, test_size = 0.3, random_state=0)
-
-    svm_best_parameter = train_evaluate_cross_validation_svm(features,labels)
-    filename = 'model/model_svm.sav'
-    training_time = train_svm(features_train,labels_train, svm_best_parameter,filename)
-    model_prediction = 'model/model_svm.sav'
-    prediction(features_test,labels_test,model_prediction)
-
-    training_time = "{:.4f} s".format(training_time)
-    print ("training time " ,training_time)
-
-    knn_best_parameter = train_evaluate_cross_validation_knn(features,labels)
-    filename = 'model/model_knn.sav'
-    training_time = train_knn(features_train,labels_train, knn_best_parameter,filename)
-    model_prediction = 'model/model_knn.sav'
-    prediction(features_test,labels_test,model_prediction)
-    training_time = "{:.4f} s".format(training_time)
-    print ("training time " ,training_time)
-
-    startprob, transmat, means, cov = get_hmm_parameter(features_train,labels_train)
-    filename = 'model/model_hmm.sav'
-    training_time =  train_hmm(startprob, transmat, means, cov,filename)
-    model_prediction = 'model/model_hmm.sav'
-    prediction(features_test,labels_test,model_prediction)
-    training_time = "{:.4f} s".format(training_time)
-    print ("training time " ,training_time)
+    util.evaluate(labels_test, predictions)

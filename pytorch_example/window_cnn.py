@@ -12,7 +12,8 @@ from pydub import AudioSegment
 import librosa
 import torch
 from torch.autograd import Variable
-from train_cnn import CNN
+import  util
+from torch.autograd import Variable
 
 def norm_signal(signal):
 
@@ -153,7 +154,7 @@ def predict(features,model):
 
 if __name__ == '__main__':
 
-    wavFile = 'wav/prediction/WAT_OC_01_150520_000000.df100.x.wav'
+    wavFile = 'wavData/prediction/HAT_A_02_121023_142845.d100.x.wav'
     window_size = 7
     step_size  = 60
 
@@ -161,7 +162,7 @@ if __name__ == '__main__':
     signal= norm_signal(x)
 
     features = feature_extraction(signal,Fs,window_size,step_size)
-    model_path = 'model/best_mfcc_model_cnn.pkl'
+    model_path = 'model/mfcc_model_cnn.pkl'
     predict(features,model_path)
 
     result = np.loadtxt("window/cnn_result.txt")

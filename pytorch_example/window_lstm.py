@@ -12,7 +12,8 @@ from pydub import AudioSegment
 import librosa
 from sklearn import preprocessing
 import torch
-from train_lstm import *
+import util
+from torch.autograd import Variable
 
 def norm_signal(signal):
 
@@ -131,11 +132,10 @@ def write_csv(wavFile,window_size,step_size,result):
     writer.writerow(fileHead)
     for i in range(len_result):
         if result[i]==0:
-            label = 'Ba'
-        elif result[i]==1:
             label = 'Bm'
-        else:
+        elif result[i]==1:
             label = 'Eg'
+
         d1 = [projet[0],projet[1],start_time[i],end_time[i],label]
         writer.writerow(d1)
     csvFile.close()
@@ -165,7 +165,7 @@ def predict(features_normalisation,model):
 
 if __name__ == '__main__':
 
-    wavFile = 'wav/prediction/WAT_OC_01_150520_000000.df100.x.wav'
+    wavFile = 'wavData/prediction/HAT_A_02_121023_142845.d100.x.wav'
     window_size = 1
     step_size  = 60
 

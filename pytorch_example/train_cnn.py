@@ -128,9 +128,9 @@ def train_mfcc(train_features,train_labels,validation_features,validation_labels
     # pre_output,_ = cnn(test_x)
     # pred_y = torch.max(pre_output, 1)[1].data.numpy().squeeze()
     # print (metrics.classification_report(test_y.numpy(), pred_y))
-    accuracy,precision,recall,f1,auc = util.evaluate(validation_labels,pred_y)
+    accuracy,precision,recall,f1 = util.evaluate(validation_labels,pred_y)
 
-    return loss,training_time,model,accuracy,precision,recall,f1,auc
+    return loss,training_time,model,accuracy,precision,recall,f1
 
 
 def train_rawSignal(image_train_path,model,optimizer,loss_func,batch_size,epochs,length,width):
@@ -196,8 +196,8 @@ def predict_rawSignal(image_test_path,model,batch_size,length,width):
         # print type(output)
         # print output[0]
         pred = output[0].max(1, keepdim=True)[1]
-        pred_y = np.append(pred_y,pred-1)
-        test_y = np.append(test_y,labels-1)
+        pred_y = np.append(pred_y,pred)
+        test_y = np.append(test_y,labels)
         # print pred_y
         # pred = torch.max(output[0], 1)[1].data.squeeze()
         # print pred
@@ -208,5 +208,5 @@ def predict_rawSignal(image_test_path,model,batch_size,length,width):
     # print len(test_loader.dataset)
     # print float(correct) /len(test_loader.dataset)
     # print (metrics.classification_report(test_y, pred_y))
-    accuracy,precision,recall,f1,auc = util.evaluate(test_y, pred_y)
-    return float(correct) /len(test_loader.dataset),model,accuracy,precision,recall,f1,auc
+    accuracy,precision,recall,f1 = util.evaluate(test_y, pred_y)
+    return float(correct) /len(test_loader.dataset),model,accuracy,precision,recall,f1

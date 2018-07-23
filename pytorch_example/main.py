@@ -68,14 +68,14 @@ parser.add_argument('--batch_size', type=int, default=1,
                     metavar='N', help='training and valid batch size')
 
 parser.add_argument('--arc', default='lstm',
-                    help='network architecture: lstm,cnn,wavenet')
+                    help='network architecture: lstm,cnn,wavenet,svm,knn,hmm')
 
 parser.add_argument('--epochs', type=int, default=1,
                     metavar='N', help='number of epochs to train')
 parser.add_argument('--lr', type=float, default=0.01,
                     metavar='LR', help='learning rate')
-# parser.add_argument('--momentum', type=float, default=0.9,
-#                     metavar='M', help='SGD momentum, for SGD only')
+parser.add_argument('--momentum', type=float, default=0.9,
+                    metavar='M', help='SGD momentum, for SGD only')
 parser.add_argument('--optimizer', default='adam',
                     help='optimization method: sgd | adam')
 parser.add_argument('--drop_out', type=float, default=0.1,
@@ -111,4 +111,4 @@ if args.prepare:
 # # types = ['mfcc','wavelet','rawSignal']
 train_model(args.features_type,args.arc,args.hidden_size,args.num_layers,args.num_classes,
                 args.drop_out,args.lr,args.batch_size,args.epochs,args.split_ratio,args.length,
-                    args.width,args.optimizer,args.image_train_path,args.image_validation_path)
+                    args.width,args.momentum,args.optimizer,args.image_train_path,args.image_validation_path)

@@ -18,13 +18,15 @@ from extration import parse_audio_files_mfcc,parse_audio_files_waveletPackets,pa
 from redimension import read_audio,distribuer
 from read_csv import read,date_type
 from test_wavenet import wavenet,train_wavenet
-
+from sklearn_example import *
 from train_lstm import RNN,train_rnn
 from train_cnn import CNN,train_mfcc,train_rawSignal,predict_rawSignal
 
 import torch
 import torch.optim as optim
 from torch import nn
+
+import time
 
 def get_spices(read_path):
     sub_dirs = []
@@ -53,10 +55,10 @@ def cut(read_path,train_csv_path,train_wav_path,redimension_train_path,redimensi
     sub_dirs,labels = get_spices(read_path)
 
     read_audio(read_path,sub_dirs,max_duration,padding_path,labels)
+    clean_wav(read_path)
+    
     distribuer(split_ratio,padding_path,sub_dirs,redimension_train_path,redimension_validation_path)
-    # clean_wav(args.read_path)
-    # cut_padding_audio(args.padding_path,sub_dirs,args.T_total,labels,args.redimension_train_path,args.redimension_validation_path)
-    # clean_wav(args.padding_path)
+    clean_wav(padding_path)
 
 
 def extract(read_path,redimension_train_path,redimension_validation_path,mfcc_length,
@@ -67,8 +69,10 @@ def extract(read_path,redimension_train_path,redimension_validation_path,mfcc_le
     cmd = "rm -rf feature/*"
     sh.run(cmd)
     file_ext='*.wav'
+    ####  choose the number of classes
     # sub_dirs,labels = get_spices(read_path)
     sub_dirs = ['Bm','Eg']
+
     print(sub_dirs)
     lstm_train_features_mfcc,lstm_train_labels_mfcc = parse_audio_files_mfcc(redimension_train_path,sub_dirs,file_ext,mfcc_length)
     lstm_validation_features_mfcc,lstm_validation_labels_mfcc = parse_audio_files_mfcc(redimension_validation_path,sub_dirs,file_ext,mfcc_length)
@@ -149,7 +153,7 @@ def extract(read_path,redimension_train_path,redimension_validation_path,mfcc_le
 
 
 def train_model(features_type,arc,hidden_size,num_layers,num_classes,drop_out,lr,batch_size,epochs,
-                    split_ratio,length,width,optimizer,image_train_path,image_validation_path):
+                    split_ratio,length,width,momentum,optimizer,image_train_path,image_validation_path):
 
     if features_type == 'mfcc' and arc =='lstm':
         # train_features,train_labels = parse_audio_files_mfcc(redimension_train_path,sub_dirs,file_ext,mfcc_length)
@@ -165,16 +169,16 @@ def train_model(features_type,arc,hidden_size,num_layers,num_classes,drop_out,lr
         model = RNN(input_size,hidden_size,num_layers, num_classes,drop_out)
 
         # define optimizer and loss function
-        optim,loss_func = optimizer_lossFunc(optimizer,model,lr)
+        optim,loss_func = optimizer_lossFunc(momentum,optimizer,model,lr)
 
 
-        loss,model,accuracy,precision,recall,f1,auc,training_time = train_rnn(train_features,train_labels,validation_features,validation_labels,model,
+        loss,model,accuracy,precision,recall,f1,training_time = train_rnn(train_features,train_labels,validation_features,validation_labels,model,
                                             optim,loss_func,input_size,batch_size,epochs)
 
         torch.save(model, 'model/mfcc_model_lstm.pkl')
         # print type(training_time)
         print ("training time " ,training_time)
-        write_result(loss,accuracy,precision,recall,f1,auc,training_time,features_type,epochs,batch_size,split_ratio,arc)
+        write_result(loss,accuracy,precision,recall,f1,training_time,features_type,epochs,batch_size,split_ratio,arc)
 
     elif features_type == 'wavelet'and arc =='lstm':
         # train_features,train_labels = parse_audio_files_waveletPackets(args.redimension_train_path,sub_dirs,file_ext)
@@ -188,15 +192,15 @@ def train_model(features_type,arc,hidden_size,num_layers,num_classes,drop_out,lr
         model = RNN(input_size,hidden_size, num_layers, num_classes,drop_out)
 
         # define optimizer and loss function
-        optim,loss_func = optimizer_lossFunc(optimizer,model,lr)
+        optim,loss_func = optimizer_lossFunc(momentum,optimizer,model,lr)
 
 
-        loss,model,accuracy,precision,recall,f1,auc,training_time = train_rnn(train_features,train_labels,validation_features,validation_labels,model,
+        loss,model,accuracy,precision,recall,f1,training_time = train_rnn(train_features,train_labels,validation_features,validation_labels,model,
                                             optim,loss_func,input_size,batch_size,epochs)
 
         torch.save(model, 'model/wavelet_model_lstm.pkl')
         print ("training time " ,training_time)
-        write_result(loss,accuracy,precision,recall,f1,auc,training_time,features_type,epochs,batch_size,split_ratio,arc)
+        write_result(loss,accuracy,precision,recall,f1,training_time,features_type,epochs,batch_size,split_ratio,arc)
 
     elif features_type == 'raw_signal'and arc =='lstm':
         # train_features,train_labels = parse_audio_files_rawSignal(args.redimension_train_path,sub_dirs,file_ext,args.sample_size,args.sample_rate)
@@ -211,14 +215,14 @@ def train_model(features_type,arc,hidden_size,num_layers,num_classes,drop_out,lr
         model = RNN(input_size,hidden_size, num_layers, num_classes,drop_out)
 
         # define optimizer and loss function
-        optim,loss_func = optimizer_lossFunc(optimizer,model,lr)
+        optim,loss_func = optimizer_lossFunc(momentum,optimizer,model,lr)
 
 
-        loss,model,accuracy,precision,recall,f1,auc,training_time = train_rnn(train_features,train_labels,validation_features,validation_labels,model,
+        loss,model,accuracy,precision,recall,f1,training_time = train_rnn(train_features,train_labels,validation_features,validation_labels,model,
                                             optim,loss_func,input_size,batch_size,epochs)
         torch.save(model, 'model/rawSignal_model_lstm.pkl')
         print ("training time " ,training_time)
-        write_result(loss,accuracy,precision,recall,f1,auc,training_time,features_type,epochs,batch_size,split_ratio,arc)
+        write_result(loss,accuracy,precision,recall,f1,training_time,features_type,epochs,batch_size,split_ratio,arc)
 
     elif features_type == 'mfcc'and arc =='cnn':
         # train_features,train_labels = get_cnn_mfccs(args.redimension_train_path,sub_dirs,file_ext,args.length,args.width)
@@ -237,15 +241,15 @@ def train_model(features_type,arc,hidden_size,num_layers,num_classes,drop_out,lr
         model = CNN(num_classes,drop_out,length,width,in_channels)
 
         # define optimizer and loss function
-        optim,loss_func = optimizer_lossFunc(optimizer,model,lr)
+        optim,loss_func = optimizer_lossFunc(momentum,optimizer,model,lr)
 
 
-        loss,training_time,model,accuracy,precision,recall,f1,auc = train_mfcc(train_features,train_labels,validation_features,
+        loss,training_time,model,accuracy,precision,recall,f1 = train_mfcc(train_features,train_labels,validation_features,
                                                         validation_labels,model,optim,loss_func,batch_size,epochs)
 
         torch.save(model, 'model/mfcc_model_cnn.pkl')
         print ("training time " ,training_time)
-        write_result(loss,accuracy,precision,recall,f1,auc,training_time,features_type,epochs,batch_size,split_ratio,arc)
+        write_result(loss,accuracy,precision,recall,f1,training_time,features_type,epochs,batch_size,split_ratio,arc)
 
     elif features_type == 'raw_signal'and arc =='cnn':
         # clean_image(args.image_train_path)
@@ -257,14 +261,14 @@ def train_model(features_type,arc,hidden_size,num_layers,num_classes,drop_out,lr
         model = CNN(num_classes,drop_out,length,width,in_channels)
 
         # define optimizer and loss function
-        optim,loss_func = optimizer_lossFunc(optimizer,model,lr)
+        optim,loss_func = optimizer_lossFunc(momentum,optimizer,model,lr)
 
         loss,training_time  = train_rawSignal(image_train_path,model,
                                             optim,loss_func,batch_size,epochs,length,width)
-        _,model,accuracy,precision,recall,f1,auc = predict_rawSignal(image_validation_path,model,batch_size,length,width)
+        _,model,accuracy,precision,recall,f1 = predict_rawSignal(image_validation_path,model,batch_size,length,width)
         torch.save(model, 'model/rawSignal_model_cnn.pkl')
         print ("training time " ,training_time)
-        write_result(loss,accuracy,precision,recall,f1,auc,training_time,features_type,epochs,batch_size,split_ratio,arc)
+        write_result(loss,accuracy,precision,recall,f1,training_time,features_type,epochs,batch_size,split_ratio,arc)
 
 
     elif features_type == 'mfcc'and arc =='wavenet':
@@ -280,12 +284,12 @@ def train_model(features_type,arc,hidden_size,num_layers,num_classes,drop_out,lr
         validation_labels = np.loadtxt("feature/wavenet_validation_labels_mfcc.txt")
 
         # define optimizer and loss function
-        optim,loss_func = optimizer_lossFunc(optimizer,model,lr)
+        optim,loss_func = optimizer_lossFunc(momentum,optimizer,model,lr)
 
-        loss,accuracy,precision,recall,f1,auc,training_time = train_wavenet(model,rec_fields,train_features,train_labels,validation_features,validation_labels,
+        loss,accuracy,precision,recall,f1,training_time = train_wavenet(model,rec_fields,train_features,train_labels,validation_features,validation_labels,
                                                 optim,loss_func,batch_size,epochs)
         print ("training time " ,training_time)
-        write_result(loss,accuracy,precision,recall,f1,auc,training_time,features_type,epochs,batch_size,split_ratio,arc)
+        write_result(loss,accuracy,precision,recall,f1,training_time,features_type,epochs,batch_size,split_ratio,arc)
 
     elif features_type == 'raw_signal'and arc =='wavenet':
         ########### wavenet raw signal
@@ -302,30 +306,90 @@ def train_model(features_type,arc,hidden_size,num_layers,num_classes,drop_out,lr
         model,rec_fields,_ = wavenet()
 
         # define optimizer and loss function
-        optim,loss_func = optimizer_lossFunc(optimizer,model,lr)
+        optim,loss_func = optimizer_lossFunc(momentum,optimizer,model,lr)
 
-        loss,accuracy,precision,recall,f1,auc,training_time  = train_wavenet(model,rec_fields,train_features,train_labels,validation_features,validation_labels,
+        loss,accuracy,precision,recall,f1,training_time  = train_wavenet(model,rec_fields,train_features,train_labels,validation_features,validation_labels,
                                                 optim,loss_func,batch_size,epochs)
         print ("training time " ,training_time)
-        write_result(loss,accuracy,precision,recall,f1,auc,training_time,features_type,epochs,batch_size,split_ratio,arc)
+        write_result(loss,accuracy,precision,recall,f1,training_time,features_type,epochs,batch_size,split_ratio,arc)
 
-def optimizer_lossFunc(optimizer,model,lr):
+    elif features_type == 'mfcc' and arc =='svm':
+        train_features = np.loadtxt("feature/lstm_train_features_mfcc.txt")
+        train_labels = np.loadtxt("feature/lstm_train_labels_mfcc.txt")
+        validation_features = np.loadtxt("feature/lstm_validation_features_mfcc.txt")
+        validation_labels = np.loadtxt("feature/lstm_validation_labels_mfcc.txt")
+
+        start_time = time.time()
+        svm_best_parameter = train_evaluate_cross_validation_svm(train_features,train_labels)
+        filename = 'model/model_svm.sav'
+        for epoch in range(epochs):
+            train_svm(train_features,train_labels, svm_best_parameter,filename)
+        end_time = time.time()
+        training_time = end_time-start_time
+
+        model_prediction = 'model/model_svm.sav'
+        prediction(validation_features,validation_labels,model_prediction)
+
+        training_time = "{:.4f} s".format(training_time)
+        print ("training time " ,training_time)
+
+    elif features_type == 'mfcc' and arc =='knn':
+
+        train_features = np.loadtxt("feature/lstm_train_features_mfcc.txt")
+        train_labels = np.loadtxt("feature/lstm_train_labels_mfcc.txt")
+        validation_features = np.loadtxt("feature/lstm_validation_features_mfcc.txt")
+        validation_labels = np.loadtxt("feature/lstm_validation_labels_mfcc.txt")
+
+        start_time = time.time()
+        knn_best_parameter = train_evaluate_cross_validation_knn(train_features,train_labels)
+        filename = 'model/model_knn.sav'
+        for epoch in range(epochs):
+            train_knn(train_features,train_labels, knn_best_parameter,filename)
+        model_prediction = 'model/model_knn.sav'
+        prediction(validation_features,validation_labels,model_prediction)
+
+        end_time = time.time()
+        training_time = end_time-start_time
+        training_time = "{:.4f} s".format(training_time)
+        print ("training time " ,training_time)
+
+    elif features_type == 'mfcc' and arc =='hmm':
+        train_features = np.loadtxt("feature/lstm_train_features_mfcc.txt")
+        train_labels = np.loadtxt("feature/lstm_train_labels_mfcc.txt")
+        validation_features = np.loadtxt("feature/lstm_validation_features_mfcc.txt")
+        validation_labels = np.loadtxt("feature/lstm_validation_labels_mfcc.txt")
+
+        start_time = time.time()
+        startprob, transmat, means, cov = get_hmm_parameter(train_features,train_labels)
+        filename = 'model/model_hmm.sav'
+        for epoch in range(epochs):
+            train_hmm(startprob, transmat, means, cov,filename)
+        model_prediction = 'model/model_hmm.sav'
+        prediction(validation_features,validation_labels,model_prediction)
+
+        end_time = time.time()
+        training_time = end_time-start_time
+        training_time = "{:.4f} s".format(training_time)
+        print ("training time " ,training_time)
+
+
+def optimizer_lossFunc(momentum,optimizer,model,lr):
 
     if optimizer.lower() == 'adam':
         optimizer = optim.Adam(model.parameters(), lr=lr)
     elif optimizer.lower() == 'sgd':
         optimizer = optim.SGD(model.parameters(), lr=lr,
-                              momentum=0.9)
+                              momentum=momentum)
     else:
         optimizer = optim.SGD(model.parameters(), lr=lr,
-                              momentum=0.9)
+                              momentum=momentum)
     loss_func = nn.CrossEntropyLoss()
 
     return optimizer,loss_func
 
 def evaluate(prediction_labels,pred_y):
-    # print prediction_labels
-    # print pred_y
+    print (prediction_labels)
+    print (pred_y)
     print ("Classification Report:")
     print (metrics.classification_report(prediction_labels, pred_y))
     print ("Confusion Matrix:")
@@ -335,18 +399,19 @@ def evaluate(prediction_labels,pred_y):
     print ("precision: {:.2f}%".format(100 * precision_score(prediction_labels, pred_y, average='macro')))
     print ("recall: {:.2f}%".format(100 * recall_score(prediction_labels, pred_y, average='macro')))
     print ("f1 score: {:.2f}%".format(100 * f1_score(prediction_labels, pred_y, average='macro')))
-    print ("auc area: {:.2f}%".format(100 * roc_auc_score(prediction_labels, pred_y)))
+    # print ("auc area: {:.2f}%".format(100 * roc_auc_score(prediction_labels, pred_y)))
     # print ("training time %.4f s" % training_time)
     accuracy = "{:.2f}%".format(100* accuracy_score(prediction_labels, pred_y))
     # print accuracy
-    precision = "{:.2f}%".format(100* precision_score(prediction_labels, pred_y))
-    recall = "{:.2f}%".format(100* recall_score(prediction_labels, pred_y))
-    f1 = "{:.2f}%".format(100* f1_score(prediction_labels, pred_y))
-    auc = "{:.2f}%".format(100* roc_auc_score(prediction_labels, pred_y))
+    precision = "{:.2f}%".format(100* precision_score(prediction_labels, pred_y, average='macro'))
+    recall = "{:.2f}%".format(100* recall_score(prediction_labels, pred_y, average='macro'))
+    f1 = "{:.2f}%".format(100* f1_score(prediction_labels, pred_y, average='macro'))
+    # auc = "{:.2f}%".format(100* roc_auc_score(prediction_labels, pred_y))
     # training_time = "{:.4f} s".format(training_time)
-    return accuracy,precision,recall,f1,auc
+    # return accuracy,precision,recall,f1,auc
+    return accuracy,precision,recall,f1
 
-def write_result(loss,accuracy,precision,recall,f1,auc,training_time,features_type,epochs,batch_size,split_ratio,arc):
+def write_result(loss,accuracy,precision,recall,f1,training_time,features_type,epochs,batch_size,split_ratio,arc):
     csvFile = open("result.csv","w")
     writer = csv.writer(csvFile)
     dataset = ["Dataset","DCLDE"]
@@ -362,7 +427,7 @@ def write_result(loss,accuracy,precision,recall,f1,auc,training_time,features_ty
     precision = ["precision",precision]
     recall = ["recall",recall]
     f1 = ["f1",f1]
-    auc = ["auc",auc]
+    # auc = ["auc",auc]
     training_time = ["training_time",training_time]
     writer.writerow(dataset)
     writer.writerow(test_type)
@@ -377,7 +442,7 @@ def write_result(loss,accuracy,precision,recall,f1,auc,training_time,features_ty
     writer.writerow(precision)
     writer.writerow(recall)
     writer.writerow(f1)
-    writer.writerow(auc)
+    # writer.writerow(auc)
     writer.writerow(training_time)
     csvFile.close()
 
