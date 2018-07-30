@@ -68,7 +68,7 @@ parser.add_argument('--batch_size', type=int, default=1,
                     metavar='N', help='training and valid batch size')
 
 parser.add_argument('--arc', default='lstm',
-                    help='network architecture: lstm,cnn,wavenet,svm,knn,hmm')
+                    help='network architecture: lstm,cnn,wavenet,svm,knn,hmm,alexnet')
 
 parser.add_argument('--epochs', type=int, default=1,
                     metavar='N', help='number of epochs to train')

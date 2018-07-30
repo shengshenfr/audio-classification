@@ -21,7 +21,7 @@ from test_wavenet import wavenet,train_wavenet
 from sklearn_example import *
 from train_lstm import RNN,train_rnn
 from train_cnn import CNN,train_mfcc,train_rawSignal,predict_rawSignal
-
+from alexNet import valide_alexNet,train_alexNet,AlexNet
 import torch
 import torch.optim as optim
 from torch import nn
@@ -56,7 +56,7 @@ def cut(read_path,train_csv_path,train_wav_path,redimension_train_path,redimensi
 
     read_audio(read_path,sub_dirs,max_duration,padding_path,labels)
     clean_wav(read_path)
-    
+
     distribuer(split_ratio,padding_path,sub_dirs,redimension_train_path,redimension_validation_path)
     clean_wav(padding_path)
 
@@ -228,7 +228,7 @@ def train_model(features_type,arc,hidden_size,num_layers,num_classes,drop_out,lr
         # train_features,train_labels = get_cnn_mfccs(args.redimension_train_path,sub_dirs,file_ext,args.length,args.width)
         # validation_features,validation_labels = get_cnn_mfccs(args.redimension_validation_path,sub_dirs,file_ext,args.length,args.width)
         train_features = np.loadtxt("feature/cnn_train_features_mfcc.txt")
-        print train_features.shape[0]
+        print (train_features.shape[0])
         train_features = train_features.reshape(train_features.shape[0]/length,length,width)
         train_labels = np.loadtxt("feature/cnn_train_labels_mfcc.txt")
 
@@ -371,6 +371,20 @@ def train_model(features_type,arc,hidden_size,num_layers,num_classes,drop_out,lr
         training_time = end_time-start_time
         training_time = "{:.4f} s".format(training_time)
         print ("training time " ,training_time)
+
+    elif features_type == 'raw_signal'and arc =='alexnet':
+        model = AlexNet()
+        length = 224
+        width = 299
+        # define optimizer and loss function
+        optim,loss_func = optimizer_lossFunc(momentum,optimizer,model,lr)
+
+        loss,training_time  = train_alexNet(image_train_path,model,optim,loss_func,batch_size,epochs,length,width)
+
+        _,model,accuracy,precision,recall,f1 = valide_alexNet(image_validation_path,model,batch_size,length,width)
+        torch.save(model, 'model/rawSignal_model_alexnet.pkl')
+        print ("training time " ,training_time)
+        write_result(loss,accuracy,precision,recall,f1,training_time,features_type,epochs,batch_size,split_ratio,arc)
 
 
 def optimizer_lossFunc(momentum,optimizer,model,lr):
