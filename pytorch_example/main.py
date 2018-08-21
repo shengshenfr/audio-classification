@@ -45,6 +45,8 @@ parser.add_argument('--split_ratio', type=float, default=0.7,
  #############  extract
 parser.add_argument('--prepare', default=False,
                     help='if you excute the code at first time. please cut the raw wav and extract features by input True')
+parser.add_argument('--extract', default=False,
+                    help='if you excute the code at first time. please extract features by input True')
 
 parser.add_argument('--image_train_path', default='image/train',
                     help='path to stock train image folder')
@@ -101,7 +103,7 @@ if args.prepare:
     cut(args.read_path,args.train_csv_path,args.train_wav_path,
         args.redimension_train_path,args.redimension_validation_path,args.padding_path,args.split_ratio)
 
-# if args.extract:
+if args.extract:
 
     extract(args.read_path,args.redimension_train_path,args.redimension_validation_path,args.mfcc_length,
                         args.sample_size,args.sample_rate,args.length,args.width,args.image_train_path,args.image_validation_path)

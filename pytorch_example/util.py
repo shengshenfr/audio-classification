@@ -55,8 +55,8 @@ def cut(read_path,train_csv_path,train_wav_path,redimension_train_path,redimensi
     sub_dirs,labels = get_spices(read_path)
 
     read_audio(read_path,sub_dirs,max_duration,padding_path,labels)
-    clean_wav(read_path)
-    
+    # clean_wav(read_path)
+
     distribuer(split_ratio,padding_path,sub_dirs,redimension_train_path,redimension_validation_path)
     clean_wav(padding_path)
 
@@ -66,14 +66,17 @@ def extract(read_path,redimension_train_path,redimension_validation_path,mfcc_le
     print(redimension_train_path)
     print(mfcc_length)
     ############ lstm mfcc
+    '''
     cmd = "rm -rf feature/*"
     sh.run(cmd)
+    '''
     file_ext='*.wav'
     ####  choose the number of classes
     # sub_dirs,labels = get_spices(read_path)
     sub_dirs = ['Bm','Eg']
 
     print(sub_dirs)
+    '''
     lstm_train_features_mfcc,lstm_train_labels_mfcc = parse_audio_files_mfcc(redimension_train_path,sub_dirs,file_ext,mfcc_length)
     lstm_validation_features_mfcc,lstm_validation_labels_mfcc = parse_audio_files_mfcc(redimension_validation_path,sub_dirs,file_ext,mfcc_length)
 
@@ -90,6 +93,7 @@ def extract(read_path,redimension_train_path,redimension_validation_path,mfcc_le
     np.savetxt("feature/lstm_train_labels_wavelet.txt",lstm_train_labels_wavelet)
     np.savetxt("feature/lstm_validation_features_wavelet.txt",lstm_validation_features_wavelet)
     np.savetxt("feature/lstm_validation_labels_wavelet.txt",lstm_validation_labels_wavelet)
+    '''
     ###########  lstm raw signal
     # sample_size=200
     # sample_rate=100
@@ -100,7 +104,7 @@ def extract(read_path,redimension_train_path,redimension_validation_path,mfcc_le
     np.savetxt("feature/lstm_train_labels_rawSignal.txt",lstm_train_labels_rawSignal)
     np.savetxt("feature/lstm_validation_features_rawSignal.txt",lstm_validation_features_rawSignal)
     np.savetxt("feature/lstm_validation_labels_rawSignal.txt",lstm_validation_labels_rawSignal)
-
+    '''
     ################   cnn mfcc
     # length = 28
     # width = 28
@@ -150,7 +154,7 @@ def extract(read_path,redimension_train_path,redimension_validation_path,mfcc_le
     np.savetxt("feature/wavenet_train_labels_rawSignal.txt",wavenet_train_labels_rawSignal)
     np.savetxt("feature/wavenet_validation_features_rawSignal.txt",wavenet_validation_features_rawSignal)
     np.savetxt("feature/wavenet_validation_labels_rawSignal.txt",wavenet_validation_labels_rawSignal)
-
+    '''
 
 def train_model(features_type,arc,hidden_size,num_layers,num_classes,drop_out,lr,batch_size,epochs,
                     split_ratio,length,width,momentum,optimizer,image_train_path,image_validation_path):
@@ -228,7 +232,7 @@ def train_model(features_type,arc,hidden_size,num_layers,num_classes,drop_out,lr
         # train_features,train_labels = get_cnn_mfccs(args.redimension_train_path,sub_dirs,file_ext,args.length,args.width)
         # validation_features,validation_labels = get_cnn_mfccs(args.redimension_validation_path,sub_dirs,file_ext,args.length,args.width)
         train_features = np.loadtxt("feature/cnn_train_features_mfcc.txt")
-        print train_features.shape[0]
+        print (train_features.shape[0])
         train_features = train_features.reshape(train_features.shape[0]/length,length,width)
         train_labels = np.loadtxt("feature/cnn_train_labels_mfcc.txt")
 

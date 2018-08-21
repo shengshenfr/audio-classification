@@ -9,7 +9,6 @@ import pywt
 import librosa
 import librosa.display
 
-import matplotlib.pyplot as plt
 import pylab
 
 import math

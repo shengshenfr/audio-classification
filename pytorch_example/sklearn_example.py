@@ -61,11 +61,11 @@ def get_hmm_parameter(features,labels):
 
     # compute transition matrix:
     transmat = np.zeros((nComps, nComps))
-    print (labels.shape)
-    print(labels)
+    # print (labels.shape)
+    # print(labels)
     for i in range(labels.shape[0]-1):
         transmat[int((labels.T)[i]), int((labels.T)[i + 1])] += 1
-        print(transmat)
+        # print(transmat)
     for i in range(nComps):                     # normalize rows of transition matrix
         transmat[i, :] /= transmat[i, :].sum()
 
@@ -105,14 +105,14 @@ def train_evaluate_cross_validation_svm(features,labels):
     print ("all accuracies are",accuracy)
     print ("best parameter index of C is ",best_accuracy_index)
     print ("best parameter C is ",classifierParams[best_accuracy_index])
-    '''
+
     plt.plot(classifierParams, accuracy)
     plt.xlabel('Value of C for SVM')
     plt.ylabel('Cross-Validated Accuracy')
     ax = plt.axes()
-    ann = ax.annotate(u"C = 18.0",xy=(18.0,0.996), xytext=(18,0.993),size=10, va="center",ha="center", bbox=dict(boxstyle='sawtooth',fc="w"), arrowprops=dict(arrowstyle="-|>", connectionstyle="angle,rad=0.4",fc='r') )
+    ann = ax.annotate(u"C = 18.0",xy=(18.0,0.932), xytext=(18,0.927),size=10, va="center",ha="center", bbox=dict(boxstyle='sawtooth',fc="w"), arrowprops=dict(arrowstyle="-|>", connectionstyle="angle,rad=0.4",fc='r') )
     plt.show()
-    '''
+
     return classifierParams[best_accuracy_index]
 
 
@@ -133,7 +133,7 @@ def train_evaluate_cross_validation_knn(features,labels):
     best_k_scores_index = np.argmax(k_scores)
     print ("best K index is ",best_k_scores_index)
     print ("best parameter K is ",k_range[best_k_scores_index])
-    '''
+
     plt.plot(k_range, k_scores)
     plt.xlabel('Value of K for KNN')
     plt.ylabel('Cross-Validated Accuracy')
@@ -141,7 +141,7 @@ def train_evaluate_cross_validation_knn(features,labels):
     ann = ax.annotate(u"K = 1",xy=(1.1,0.994), xytext=(4,0.994),size=10, va="center",ha="center", bbox=dict(boxstyle='sawtooth',fc="w"), arrowprops=dict(arrowstyle="-|>", connectionstyle="angle,rad=0.4",fc='r') )
 
     plt.show()
-    '''
+
     return k_range[best_k_scores_index]
 
 
